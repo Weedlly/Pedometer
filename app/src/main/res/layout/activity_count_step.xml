@@ -28,7 +28,7 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:text="0"
-        android:textColor="@android:color/black"
+        android:textColor="@android:color/white"
         android:textSize="40sp" />
 
     <TextView
@@ -36,11 +36,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:layout_above="@id/stepsTaken_tv"
         android:text="0%"
-        android:textColor="@android:color/black"
-        android:textSize="14sp"
-        ></TextView>
+        android:layout_above="@id/stepsTaken_tv"
+        android:textColor="@color/silver"
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/totalMaxStep_tv"
@@ -50,10 +49,10 @@
         android:layout_below="@id/stepsTaken_tv"
         android:layout_margin="10dp"
         android:text="@string/aim_step"
-        android:textColor="@android:color/black"
+        android:textColor="@color/silver"
         android:textSize="14sp"
 
-        ></TextView>
+        />
 
     <TextView
         android:id="@+id/weekdays_tv"
@@ -61,20 +60,17 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:layout_below="@id/totalMaxStep_tv"
-        android:text="SATURDAY"
-        android:textColor="@android:color/black"
-        android:textSize="13sp"
-        ></TextView>
+        android:textColor="@color/silver"
+        android:textSize="13sp" />
+
     <TextView
         android:id="@+id/month_and_day_tv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:layout_below="@id/weekdays_tv"
-        android:text="AUGUST 20"
-        android:textColor="@android:color/black"
-        android:textSize="13sp"
-        ></TextView>
+        android:textColor="@color/silver"
+        android:textSize="13sp" />
 
 
 </RelativeLayout>

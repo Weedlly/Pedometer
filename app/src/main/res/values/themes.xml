@@ -7,6 +7,7 @@
         <!--Time bar-->
         <item name="colorPrimaryVariant">@color/black</item>
         <item name="colorOnPrimary">@color/yellow</item>
+        <item name="android:windowBackground">@color/blue_grey</item>
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/yellow</item>
         <item name="colorSecondaryVariant">@color/yellow</item>

@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
 import com.example.pedometer.databinding.ActivityCountStepBinding
+import java.text.DateFormatSymbols
+import java.util.*
 import kotlin.math.roundToInt
 
 class CountStep : AppCompatActivity(), SensorEventListener {
@@ -29,6 +31,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         supportActionBar!!.setCustomView(R.layout.abs_layout)
         supportActionBar!!.title = "Pedometer"
+        loadTime()
         loadData()
         resetStep()
 
@@ -90,5 +93,23 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         Log.v("MainActivity","$saveNumber")
         previousTotalSteps = saveNumber
     }
+    private fun loadTime(){
+        val calendarInstance = Calendar.getInstance()
+        val day = calendarInstance.get(Calendar.DAY_OF_MONTH)
+        val month = calendarInstance.get(Calendar.MONTH)
+        val weekday = calendarInstance.get(Calendar.DAY_OF_WEEK)
+        binding!!.weekdaysTv.text = getWeekday(weekday)
 
+        binding!!.monthAndDayTv.text = baseContext.resources.getString(
+            R.string.month_and_day,
+            getMonth(month),
+            day.toString()
+        )
+    }
+    private fun getMonth(month: Int): String? {
+        return DateFormatSymbols().months[month - 1]
+    }
+    private fun getWeekday(weekday: Int): String? {
+        return DateFormatSymbols().weekdays[weekday]
+    }
 }
