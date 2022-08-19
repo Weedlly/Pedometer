@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Pedometer</string>
+    <string name="aim_step">AIM : 1000</string>
+    <string name="percent_aim">%1$d%%</string>
 </resources>

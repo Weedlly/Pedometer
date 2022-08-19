@@ -5,28 +5,34 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.widget.TextView
 import android.widget.Toast
-import com.example.pedometer.databinding.ActivityMainBinding
-import java.util.zip.Inflater
+import androidx.appcompat.app.ActionBar
+import androidx.appcompat.app.AppCompatActivity
+import com.example.pedometer.databinding.ActivityCountStepBinding
+import kotlin.math.roundToInt
 
-class MainActivity : AppCompatActivity(), SensorEventListener {
+class CountStep : AppCompatActivity(), SensorEventListener {
     private var sensorManager : SensorManager? = null
     private var running = false
     private var totalStep : Float = 0f
     private var previousTotalSteps = 0f
+    private var maxStep = 1000f
 
-    private var binding : ActivityMainBinding? = null
+    private var binding : ActivityCountStepBinding? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
+        binding = ActivityCountStepBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
-
+        supportActionBar!!.setDisplayHomeAsUpEnabled(true)
+        supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
+        supportActionBar!!.setCustomView(R.layout.abs_layout)
+        supportActionBar!!.title = "Pedometer"
         loadData()
         resetStep()
+
+
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
 
@@ -35,10 +41,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         running = true
         val stepSensor : Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         if (stepSensor == null){
-            Toast.makeText(this,"No senser detected on this device", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this,"No sensor detected on this device", Toast.LENGTH_SHORT).show()
         }
         else{
-            sensorManager?.registerListener(this,stepSensor,SensorManager.SENSOR_DELAY_UI)
+            sensorManager?.registerListener(this,stepSensor,SensorManager.SENSOR_DELAY_FASTEST)
+            Log.v("MainActivity","Start")
         }
     }
 
@@ -47,7 +54,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             totalStep = p0!!.values[0]
             val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
             binding!!.stepsTakenTv.text = ("$currentSteps")
-
+            val percent = (currentSteps * 100/ maxStep).roundToInt()
+            binding!!.percentTv.text = baseContext.resources.getString(R.string.percent_aim,percent)
             binding!!.progressCircular.apply {
                 setProgressWithAnimation(currentSteps.toFloat())
             }
@@ -66,7 +74,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             previousTotalSteps = totalStep
             binding!!.stepsTakenTv.text = "0"
             saveData()
-
             true
         }
     }
@@ -80,7 +87,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private fun loadData(){
         val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
         val saveNumber = sharedPreferences.getFloat("key1",0f)
-        Log.d("MainActivity","$saveNumber")
+        Log.v("MainActivity","$saveNumber")
         previousTotalSteps = saveNumber
     }
 
