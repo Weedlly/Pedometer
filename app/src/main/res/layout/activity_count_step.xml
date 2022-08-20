@@ -1,76 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_height="match_parent"
-    android:layout_gravity="center"
-    tools:context=".CountStep">
+    android:layout_width="match_parent"
+    android:background="@color/dark_green"
+    >
+    <RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/countingMonitor"
+        android:layout_margin="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="400dp"
+        android:layout_gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:background="@color/blue_gray"
+        tools:context=".CountStep">
 
-    <com.mikhaellopez.circularprogressbar.CircularProgressBar
-        android:id="@+id/progress_circular"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
-        android:layout_centerInParent="true"
-        app:cpb_background_progressbar_color="@color/black"
-        app:cpb_background_progressbar_width="20dp"
-        app:cpb_progress_direction="to_right"
-        app:cpb_progressbar_color="@color/yellow"
-        app:cpb_progressbar_width="10dp"
-        app:cpb_round_border="true"
-        app:cpb_progress="0"
-        app:cpb_progress_max="1000"/>
+        <com.mikhaellopez.circularprogressbar.CircularProgressBar
+            android:id="@+id/progress_circular"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_centerInParent="true"
+            app:cpb_background_progressbar_color="@color/black"
+            app:cpb_background_progressbar_width="20dp"
+            app:cpb_progress_direction="to_right"
+            app:cpb_progressbar_color="@color/yellow"
+            app:cpb_progressbar_width="10dp"
+            app:cpb_round_border="true"
+            app:cpb_progress="0"
+            app:cpb_progress_max="1000"/>
 
-    <TextView
-        android:id="@+id/stepsTaken_tv"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:text="0"
-        android:textColor="@android:color/white"
-        android:textSize="40sp" />
+        <TextView
+            android:id="@+id/stepsTaken_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="0"
+            android:textColor="@android:color/white"
+            android:textSize="40sp" />
 
-    <TextView
-        android:id="@+id/percent_tv"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:text="0%"
-        android:layout_above="@id/stepsTaken_tv"
-        android:textColor="@color/silver"
-        android:textSize="14sp" />
+        <TextView
+            android:id="@+id/percent_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="0%"
+            android:layout_above="@id/stepsTaken_tv"
+            android:textColor="@color/silver"
+            android:textSize="14sp" />
 
-    <TextView
-        android:id="@+id/totalMaxStep_tv"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:layout_below="@id/stepsTaken_tv"
-        android:layout_margin="10dp"
-        android:text="@string/aim_step"
-        android:textColor="@color/silver"
-        android:textSize="14sp"
+        <TextView
+            android:id="@+id/totalMaxStep_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_below="@id/stepsTaken_tv"
+            android:layout_margin="10dp"
+            android:text="@string/aim_step"
+            android:textColor="@color/silver"
+            android:textSize="14sp"
 
-        />
+            />
 
-    <TextView
-        android:id="@+id/weekdays_tv"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:layout_below="@id/totalMaxStep_tv"
-        android:textColor="@color/silver"
-        android:textSize="13sp" />
+        <TextView
+            android:id="@+id/weekdays_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_below="@id/totalMaxStep_tv"
+            android:textColor="@color/silver"
+            android:textSize="13sp" />
 
-    <TextView
-        android:id="@+id/month_and_day_tv"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:layout_below="@id/weekdays_tv"
-        android:textColor="@color/silver"
-        android:textSize="13sp" />
+        <TextView
+            android:id="@+id/month_and_day_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_below="@id/weekdays_tv"
+            android:textColor="@color/silver"
+            android:textSize="13sp" />
+
+    </RelativeLayout>
+    <RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        app:layout_constraintTop_toBottomOf="@id/countingMonitor"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        tools:context=".CountStep">
+        <com.github.mikephil.charting.charts.BarChart
+            android:id="@+id/weeklyBarChart_bc"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true"
+            android:layout_margin="20dp"
+            ></com.github.mikephil.charting.charts.BarChart>
+    </RelativeLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
 
 
-</RelativeLayout>
+

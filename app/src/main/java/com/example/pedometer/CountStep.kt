@@ -11,16 +11,32 @@ import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
 import com.example.pedometer.databinding.ActivityCountStepBinding
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.components.YAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
 import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
 
 class CountStep : AppCompatActivity(), SensorEventListener {
+    //Sensor and CountStep
     private var sensorManager : SensorManager? = null
     private var running = false
     private var totalStep : Float = 0f
     private var previousTotalSteps = 0f
     private var maxStep = 1000f
+
+    //Chart
+    private val MAX_X_VALUE = 7
+    private val MAX_Y_VALUE = maxStep
+    private val MIN_Y_VALUE = maxStep / 10
+    private val X_TITLE : Array<String> = arrayOf("SUN","MON","TUE","WED","THU","FRI","SAT")
+    private var barChart : BarChart? = null
 
     private var binding : ActivityCountStepBinding? = null
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,10 +47,19 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         supportActionBar!!.setCustomView(R.layout.abs_layout)
         supportActionBar!!.title = "Pedometer"
+
+        //Counter monitor
         loadTime()
         loadData()
         resetStep()
 
+        //Chart visualise
+        barChart = binding!!.weeklyBarChartBc
+
+        println(barChart!!)
+        val data = createChartData()
+        configureChartAppearance()
+        prepareChartData(data)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
@@ -111,5 +136,59 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     }
     private fun getWeekday(weekday: Int): String? {
         return DateFormatSymbols().weekdays[weekday]
+    }
+    private fun configureChartAppearance() {
+        barChart!!.description.isEnabled = false
+        barChart!!.setDrawValueAboveBar(false)
+        barChart!!.setDrawGridBackground(true)
+        barChart!!.setBackgroundColor(resources.getColor(R.color.blue_gray))
+        barChart!!.setGridBackgroundColor(resources.getColor(R.color.blue_gray))
+
+        barChart!!.xAxis.isEnabled = true
+        barChart!!.axisLeft.isEnabled = false
+        barChart!!.axisRight.isEnabled = false
+        barChart!!.xAxis.position = XAxis.XAxisPosition.BOTTOM
+        barChart!!.xAxis.textColor = resources.getColor(R.color.white)
+        barChart!!.xAxis.textSize = 12f
+
+        val xAxis : XAxis = barChart!!.xAxis
+
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                return X_TITLE[value.toInt()]
+            }
+        }
+        val axisLeft : YAxis = barChart!!.axisLeft
+        axisLeft.granularity = 10f
+        axisLeft.axisMinimum = 0f
+
+        val axisRight : YAxis = barChart!!.axisRight
+        axisRight.granularity = 10f
+        axisRight.axisMinimum = 0f
+    }
+
+    private fun createChartData(): BarData {
+        val values = arrayListOf<BarEntry>()
+        for (i in 0 until MAX_X_VALUE) {
+            val x = i.toFloat()
+            val y = (MIN_Y_VALUE.toInt()..MAX_Y_VALUE.toInt()).random().toFloat()
+            values.add(
+                BarEntry(x, y)
+            )
+        }
+        val set1 = BarDataSet(values,null)
+
+        set1.color = resources.getColor(R.color.yellow)
+        set1.valueTextColor = resources.getColor(R.color.white)
+
+        val dataSets = arrayListOf<IBarDataSet>()
+        dataSets.add(set1)
+        return BarData(dataSets)
+    }
+
+    private fun prepareChartData(barData : BarData){
+        barData.setValueTextSize(10f)
+        barChart!!.data = barData
+        barChart!!.invalidate()
     }
 }

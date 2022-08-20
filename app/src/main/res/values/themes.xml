@@ -3,9 +3,9 @@
     <style name="Theme.Pedometer" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
         <!--Name app bar-->
-        <item name="colorPrimary">@color/black</item>
+        <item name="colorPrimary">@color/blue_gray</item>
         <!--Time bar-->
-        <item name="colorPrimaryVariant">@color/black</item>
+        <item name="colorPrimaryVariant">@color/blue_gray</item>
         <item name="colorOnPrimary">@color/yellow</item>
         <item name="android:windowBackground">@color/blue_grey</item>
         <!-- Secondary brand color. -->
