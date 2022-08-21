@@ -23,6 +23,8 @@ import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
 
+const val FOOT_TO_METER = 0.3048
+const val FOOT_TO_CALORIE = 0.00032
 class CountStep : AppCompatActivity(), SensorEventListener {
     //Sensor and CountStep
     private var sensorManager : SensorManager? = null
@@ -78,15 +80,27 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     }
 
     override fun onSensorChanged(p0: SensorEvent?) {
-        if (running){
+        if (running) {
             totalStep = p0!!.values[0]
             val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
             binding!!.stepsTakenTv.text = ("$currentSteps")
-            val percent = (currentSteps * 100/ maxStep).roundToInt()
-            binding!!.percentTv.text = baseContext.resources.getString(R.string.percent_aim,percent)
+
+            val percent = (currentSteps * 100 / maxStep).roundToInt()
+            binding!!.percentTv.text =
+                baseContext.resources.getString(R.string.percent_aim, percent)
+
             binding!!.progressCircular.apply {
                 setProgressWithAnimation(currentSteps.toFloat())
             }
+
+            binding!!.distanceContentTv.text = baseContext.resources.getString(
+                R.string.distances,
+                FOOT_TO_METER * currentSteps
+            )
+            binding!!.caloriesContentTv.text = baseContext.resources.getString (
+                R.string.calories,
+                FOOT_TO_CALORIE * currentSteps
+            )
         }
     }
 
@@ -101,6 +115,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         binding!!.stepsTakenTv.setOnLongClickListener{
             previousTotalSteps = totalStep
             binding!!.stepsTakenTv.text = "0"
+            binding!!.percentTv.text = baseContext.resources.getString(R.string.percent_aim,0)
             saveData()
             true
         }
@@ -148,7 +163,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         barChart!!.axisLeft.isEnabled = false
         barChart!!.axisRight.isEnabled = false
         barChart!!.xAxis.position = XAxis.XAxisPosition.BOTTOM
-        barChart!!.xAxis.textColor = resources.getColor(R.color.white)
+        barChart!!.xAxis.textColor = resources.getColor(R.color.silver)
         barChart!!.xAxis.textSize = 12f
 
         val xAxis : XAxis = barChart!!.xAxis

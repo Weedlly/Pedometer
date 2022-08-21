@@ -3,4 +3,8 @@
     <string name="aim_step">AIM: 1000</string>
     <string name="percent_aim">%1$d%%</string>
     <string name="month_and_day">%s %s</string>
+    <string name="calories">%.3f</string>
+    <string name="distances">%.3f</string>
+    <string name="meter_tittle">METERS</string>
+    <string name="calories_title">CALORIES</string>
 </resources>
