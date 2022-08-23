@@ -11,5 +11,5 @@
     map:uiZoomControls="true"
     map:uiRotateGestures="true"
     map:cameraTilt="30"
-    
+
     />
