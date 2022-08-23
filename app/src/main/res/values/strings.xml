@@ -7,4 +7,6 @@
     <string name="distances">%.3f</string>
     <string name="meter_tittle">METERS</string>
     <string name="calories_title">CALORIES</string>
+    <string name="title_activity_gps_map">GpsMap</string>
+    <string name="map_id">5618cd7b01db1e2e</string>
 </resources>
