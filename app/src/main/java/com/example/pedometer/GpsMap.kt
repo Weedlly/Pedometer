@@ -1,19 +1,16 @@
 package com.example.pedometer
 
-import Place
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.location.Location
+import android.os.AsyncTask
 import android.os.Bundle
-import android.provider.SettingsSlicesContract.KEY_LOCATION
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import android.widget.FrameLayout
-import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -26,15 +23,12 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place.Field
 import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest
 import com.google.android.libraries.places.api.net.PlacesClient
-import com.google.codelabs.buildyourfirstmap.place.PlacesReader
+import org.json.JSONObject
 
 
 class GpsMap : AppCompatActivity(), OnMapReadyCallback {
@@ -43,7 +37,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 //    private val places: List<Place> by lazy {
 //        PlacesReader(this).read()
 //    }
-
+    var markerPoints = ArrayList<LatLng>()
     private var mGoogleMap: GoogleMap? = null
     private var cameraPosition: CameraPosition? = null
 
@@ -137,17 +131,42 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 //        mGoogleMap.addMarker(MarkerOptions().position(kyoto).title("Marker in Tokyo"))
 //        mGoogleMap.moveCamera(CameraUpdateFactory.zoomTo(15f))
 //        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(kyoto))
+        mGoogleMap!!.setOnMapClickListener {
+            if (markerPoints.size > 1){
+                markerPoints.clear()
+                mGoogleMap!!.clear()
+            }
+            // Adding new item to the ArrayList
+            markerPoints.add(it)
+            // Creating MarkerOptions
+            var markerOptions = MarkerOptions()
+            // Setting the position of the marker
+            markerOptions.position(it)
+            if (markerPoints.size == 1)
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+            else if (markerPoints.size == 2) {
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+            }
+            // Add new marker to the Google Map Android API V2
+            mGoogleMap!!.addMarker(markerOptions)
+            // Checks, whether start and end locations are captured
+            if (markerPoints.size >= 2){
+                var origin = markerPoints[0]
+                var dest = markerPoints[1]
+                var polylineOptions = PolylineOptions()
+                polylineOptions.add(origin,dest)
+                // Getting URL to the Google Directions API
+                mGoogleMap!!.addPolyline(polylineOptions)
 
+
+
+            }
+        }
     }
 
-//    private fun addMarkers( googleMap: GoogleMap){
-//        places.forEach{ place ->
-//            println(place.name)
-//            val market = googleMap.addMarker(
-//                MarkerOptions().title(place.name).position(place.latLng)
-//            )
-//        }
-//    }
+
+
+
     override fun onSaveInstanceState(outState: Bundle) {
         mGoogleMap?.let { map ->
             outState.putParcelable(KEY_CAMERA_POSITION, map.cameraPosition)
