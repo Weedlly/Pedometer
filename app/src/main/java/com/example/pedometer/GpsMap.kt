@@ -4,9 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.location.Location
-import android.os.AsyncTask
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -28,7 +26,6 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place.Field
 import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest
 import com.google.android.libraries.places.api.net.PlacesClient
-import org.json.JSONObject
 
 
 class GpsMap : AppCompatActivity(), OnMapReadyCallback {
@@ -157,13 +154,32 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 polylineOptions.add(origin,dest)
                 // Getting URL to the Google Directions API
                 mGoogleMap!!.addPolyline(polylineOptions)
-
+                println(getDirectionsUrl(origin,dest))
 
 
             }
         }
     }
+    //https://maps.googleapis.com/maps/api/directions/json
+    //  ?avoid=highways
+    //  &destination=Montreal
+    //  &mode=bicycling
+    //  &origin=Toronto
+    //  &key=YOUR_API_KEY
 
+    //"https://maps.googleapis.com/maps/api/directions/json"
+    // String parameters = str_origin + "&" + str_dest + "&" + sensor + "&" + mode;
+    private fun getDirectionsUrl( origin : LatLng, dest : LatLng) : String{
+        val strOrigin = "origin=" + origin.latitude + "," + origin.longitude
+        val strDest = "destination=" + dest.latitude + "," + dest.longitude
+        val sensor = "sensor=false"
+        val mode = "mode=walking"
+        val key = "key=$MAPS_API_KEY"
+        val params = "$strOrigin&$strDest&$sensor&$mode&$key"
+        val outputType = "json"
+        val defaultLink = "https://maps.googleapis.com/maps/api/directions/"
+        return "$defaultLink$outputType?$params"
+    }
 
 
 
