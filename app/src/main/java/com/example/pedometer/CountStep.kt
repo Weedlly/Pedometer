@@ -58,7 +58,6 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         //Chart visualise
         barChart = binding!!.weeklyBarChartBc
 
-        println(barChart!!)
         val data = createChartData()
         configureChartAppearance()
         prepareChartData(data)
