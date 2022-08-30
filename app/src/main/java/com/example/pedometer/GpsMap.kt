@@ -6,7 +6,6 @@ import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
-import android.provider.SettingsSlicesContract.KEY_LOCATION
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -14,11 +13,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.pedometer.BuildConfig.ACCESS_TOKEN
 import com.example.pedometer.BuildConfig.MAPS_API_KEY
 import com.example.pedometer.databinding.ActivityGpsMapBinding
-import com.example.pedometer.place.Geometry
-import com.example.pedometer.place.Routes
+import com.example.pedometer.network.ApiInterface
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -35,9 +32,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.GET
-import retrofit2.http.Path
-import retrofit2.http.Streaming
 
 
 class GpsMap : AppCompatActivity(), OnMapReadyCallback {
@@ -70,7 +64,6 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     private var likelyPlaceAttributions: Array<List<*>?> = arrayOfNulls(0)
     private var likelyPlaceLatLngs: Array<LatLng?> = arrayOfNulls(0)
 
-    private var urlParams = ""
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -166,9 +159,8 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 val dest = markerPoints[1]
 
                 val polylineOptions = PolylineOptions()
-//                polylineOptions.add(origin,dest)
+
                 // Getting URL to the Google Directions API
-//                urlParams = getDirectionsUrl(origin,dest)
                 println("https://api.mapbox.com/directions/v5/mapbox/walking/" +
                         "${origin.longitude}%2C" +
                         "${origin.latitude}%3B" +
@@ -180,7 +172,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 println(coordinates)
                 var nextStep = origin
                 for (step in coordinates){
-                    var lng = LatLng(step[1],step[0])
+                    val lng = LatLng(step[1],step[0])
                     polylineOptions.add(nextStep,lng)
                     nextStep = lng
                 }
@@ -191,55 +183,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     }
     private val baseUrl = "https://api.mapbox.com"
 
-//    private val baseUrl = "https://android-kotlin-fun-mars-server.appspot.com/"
-//
-    // https://maps.googleapis.com
-    // /maps/api/directions/json?
-    // origin=10.803535704644942,106.63210149854422
-    // &destination=10.79638842208413,106.63742065429688
-    // &sensor=false
-    // &mode=walking
-    // &key=AIzaSyCm4V0EyWq3WR7Xcq6dplMHwn6qFKHX2o4
 
-    //https://api.mapbox.com/directions/v5/mapbox/driving/-73.98986988331157%2C40.73400799834212%3B-73.9897834800288%2C40.7336951876986?alternatives=true&geometries=geojson&language=en&overview=simplified&steps=true&access_token=pk.eyJ1Ijoid2VlZGx5IiwiYSI6ImNsN2VpNGhzdzAwa3kzcG1rejUyMmx5bWgifQ.yWa9VGg1_-dNypDTcohLCg
-
-    //https://api.mapbox.com/directions/v5/mapbox/driving/
-    // -73.98985068258229
-    // %2C40.7341607657969
-    // %3B-73.9898410822176
-    // %2C40.734000723693185
-    // ?alternatives=true
-    // &geometries=geojson&language=en&overview=simplified&steps=true&access_token=pk.eyJ1Ijoid2VlZGx5IiwiYSI6ImNsN2VpNGhzdzAwa3kzcG1rejUyMmx5bWgifQ.yWa9VGg1_-dNypDTcohLCg
-
-    // https://api.mapbox.com
-    // /directions/v5/mapbox/walking/
-    // -73.98986028294692
-    // %2C40.73354241917485
-    // %3B-73.99008109133703
-    // %2C40.7336442648961
-    // ?alternatives=false
-    // &geometries=geojson
-    // &overview=simplified
-    // &steps=false
-    // &access_token=pk.eyJ1Ijoid2VlZGx5IiwiYSI6ImNsN2VpMW56bjAwa2gzbnBnaHd2MjJmZGYifQ.It2pYYoWNWQ-9Ogs49OUMg
-
-    interface ApiInterface {
-        @Streaming
-        @GET("/directions/v5/mapbox/walking/" +
-                "{lonOrigin}%2C" +
-                "{latOrigin}%3B" +
-                "{lonDes}%2C" +
-                "{latDes}?alternatives=false&geometries=geojson&overview=simplified&steps=false&" +
-                "access_token=${ACCESS_TOKEN}")
-//        @GET("/{photos}" )
-        suspend fun getPlaces(
-//              @Path("photos") name : String
-            @Path("lonOrigin") lonOrigin : Double,
-            @Path("latOrigin") latOrigin : Double,
-            @Path("lonDes") lonDes : Double,
-            @Path("latDes") latDes : Double,
-        ): Routes
-    }
     private fun getDirection(origin: LatLng ,dest: LatLng) : List<List<Double>>{
         val retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create()).build()
         val service: ApiInterface by lazy { retrofit.create(ApiInterface::class.java)}
@@ -253,33 +197,14 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                     dest.longitude,
                     dest.latitude
                 )
-                coordinates = routes.routes[0]!!.geometry.coordinates
+                coordinates = routes.routes[0].geometry.coordinates
             }
             coordinates
         }
         return coordinates
     }
 
-    //https://maps.googleapis.com/maps/api/directions/json
-    //  ?avoid=highways
-    //  &destination=Montreal
-    //  &mode=bicycling
-    //  &origin=Toronto
-    //  &key=YOUR_API_KEY
 
-    //"https://maps.googleapis.com/maps/api/directions/json"
-    // String parameters = str_origin + "&" + str_dest + "&" + sensor + "&" + mode;
-    private fun getDirectionsUrl( origin : LatLng, dest : LatLng) : String{
-        val strOrigin = "origin=" + origin.latitude + "," + origin.longitude
-        val strDest = "destination=" + dest.latitude + "," + dest.longitude
-        val sensor = "sensor=false"
-        val mode = "mode=driving"
-        val key = "key=$MAPS_API_KEY"
-        val params = "$strOrigin&$strDest&$sensor&$mode&$key"
-        val outputType = "json"
-        val defaultLink = "https://maps.googleapis.com/maps/api/directions/"
-        return "$defaultLink$outputType?$params"
-    }
 
 
 
@@ -302,6 +227,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     }
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        println("move to current place")
         menuInflater.inflate(R.menu.current_place_menu, menu)
         return true
     }
@@ -324,6 +250,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     }
     @SuppressLint("MissingPermission")
     private fun updateLocationUI(){
+        println("Update_location")
         if (mGoogleMap == null){
             return
         }
@@ -351,15 +278,31 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 val locationResult = fusedLocationProviderClient.lastLocation
                 locationResult.addOnCompleteListener(this){
                     task ->
+
+                    //var currentLatLng = LatLng(lastKnownLocation!!.longitude,lastKnownLocation!!.latitude)
                     if(task.isSuccessful){
+                        println("set_camera")
                         // Set the map's camera position to the current location of the device.
                         lastKnownLocation = task.result
+
+//                        println("lastKnownLocation : $lastKnownLocation")
+//                        val markerOptions = MarkerOptions()
+//                        markerOptions.position(LatLng( lastKnownLocation!!.longitude,lastKnownLocation!!.latitude))
+//                        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+//                        mGoogleMap!!.addMarker(markerOptions)
                         if (lastKnownLocation != null){
                             mGoogleMap?.moveCamera((CameraUpdateFactory.newLatLngZoom(
                                 LatLng(lastKnownLocation!!.latitude,
                                     lastKnownLocation!!.altitude), DEFAULT_ZOOM.toFloat())))
                         }
                     }
+//                    markerPoints.add( LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.))
+//                    // Creating MarkerOptions
+//                    val markerOptions = MarkerOptions()
+//                    // Setting the position of the marker
+//                    markerOptions.position(it)
+//                    if (markerPoints.size == 1)
+//                        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
 
                 }
             }

@@ -1,4 +1,4 @@
-package com.example.pedometer.place
+package com.example.pedometer.model
 
 data class Route(
     val country_crossed: Boolean,

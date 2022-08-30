@@ -1,4 +1,4 @@
-package com.example.pedometer.place
+package com.example.pedometer.model
 
 data class Admin(
     val iso_3166_1: String,

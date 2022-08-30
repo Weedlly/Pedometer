@@ -1,4 +1,4 @@
-package com.example.pedometer.place
+package com.example.pedometer.model
 
 import com.google.gson.annotations.SerializedName
 
