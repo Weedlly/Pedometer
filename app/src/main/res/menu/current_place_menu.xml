@@ -15,5 +15,5 @@
     <item
         android:id="@+id/option_get_place"
         android:title="option_get_place"
-        app:showAsAction="always"/>
+        app:showAsAction="never"/>
 </menu>

@@ -1,17 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.fragment.app.FragmentContainerView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/map"
-    android:name="com.google.android.gms.maps.SupportMapFragment"
-    android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_width="match_parent"
     tools:context=".GpsMap"
-    map:mapId="@string/map_id"
-    map:uiZoomControls="true"
-    map:uiRotateGestures="true"
-    map:cameraTilt="30"
-    >
+    android:orientation="vertical"
+    android:weightSum="4"
+    android:background="@color/white">
+    <fragment
+        android:id="@+id/map"
+        map:mapId="@string/map_id"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_weight="3"
+        android:layout_height="0dp"
+        map:uiZoomControls="true"
+        map:uiRotateGestures="true"
+        map:cameraTilt="30"
+        >
+    </fragment>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:weightSum="2"
+        android:orientation="vertical"
+        android:paddingBottom="10dp"
+        android:paddingTop="10dp"
+        >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_weight="1"
+            android:layout_height="0dp"
+            android:orientation="horizontal"
+            android:weightSum="3"
+            android:baselineAligned="false"
+            android:background="@color/white"
+            android:paddingBottom="10dp"
+            android:paddingTop="10dp">
+            <include
+                android:id="@+id/distance_tv"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                layout="@layout/textview_custom"/>
+            <include
+                android:id="@+id/calories_tv"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                layout="@layout/textview_custom"/>
+            <include
+                android:id="@+id/duration_tv"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                layout="@layout/textview_custom"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_weight="1"
+            android:layout_height="0dp"
+            android:weightSum="2"
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingBottom="10dp"
+            android:paddingTop="10dp"
+            >
+            <Button
+                android:id="@+id/stop_bt"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="STOP"
+                android:layout_margin="5dp"
+                style="@style/MaterialAlertDialog.Material3"
+                android:textColor="@color/white"
+                />
+            <Button
+                android:id="@+id/startAndPause_bt"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="START"
+                android:layout_margin="5dp"
+                style="@style/MaterialAlertDialog.Material3"
+                android:textColor="@color/white"
+                />
+        </LinearLayout>
+    </LinearLayout>
 
+</LinearLayout>
 
-</androidx.fragment.app.FragmentContainerView>
