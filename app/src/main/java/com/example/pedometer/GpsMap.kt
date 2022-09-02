@@ -7,11 +7,15 @@ import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.core.view.marginRight
 import com.example.pedometer.BuildConfig.MAPS_API_KEY
 import com.example.pedometer.databinding.ActivityGpsMapBinding
+import com.example.pedometer.model.Route
 import com.example.pedometer.network.ApiInterface
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -22,21 +26,18 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.net.PlacesClient
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import io.nlopez.smartlocation.SmartLocation
+import kotlinx.coroutines.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 private const val baseUrl = "https://api.mapbox.com"
 
-
+const val KILOMETER_TO_CALORIE = 55
 class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityGpsMapBinding
-//    private val places: List<Place> by lazy {
-//        PlacesReader(this).read()
-//    }
+
     private var markerPoints = ArrayList<LatLng>()
     private var mGoogleMap: GoogleMap? = null
     private var cameraPosition: CameraPosition? = null
@@ -47,8 +48,6 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     // The entry point to the Fused Location Provider.
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
-    // A default location (Sydney, Australia) and default zoom to use when location permission is
-    // not granted.
     private var locationPermissionGranted = false
 
     // The geographical location where the device is currently located. That is, the last-known
@@ -56,16 +55,55 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     private var lastKnownLocation: Location? = null
 
-//    private var likelyPlaceNames: Array<String?> = arrayOfNulls(0)
-//    private var likelyPlaceAddresses: Array<String?> = arrayOfNulls(0)
-//    private var likelyPlaceAttributions: Array<List<*>?> = arrayOfNulls(0)
-//    private var likelyPlaceLatLngs: Array<LatLng?> = arrayOfNulls(0)
+    private var isEnoughTwoPoint = false
+
+    private var coroutine = CoroutineScope(Dispatchers.IO)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityGpsMapBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        //Set up title and init value
+        setupTitle()
+        updateTravelInfo(0.0,0.0)
+
+        // Update continuous location
+        coroutine.launch{
+            while (true) {
+                delay(10000)
+                SmartLocation.with(baseContext).location().start{
+                    if (locationPermissionGranted) {
+                        lastKnownLocation = it
+                        Log.v(TAG, "Update location: $lastKnownLocation")
+                    }
+                }
+            }
+        }
+        // Press Start Button to show Stop and Pause Button
+        binding.startBt.setOnClickListener {
+
+            if (isEnoughTwoPoint) {
+                binding.startBt.isVisible = false
+                binding.stopBt.isVisible = true
+                binding.pauseBt.isVisible = true
+            }
+            else {
+                // Requiring choose destination point to start
+                Toast.makeText(this, "Choosing location you want to moving ", Toast.LENGTH_SHORT)
+                    .show()
+                // Focus my location
+                handleMyLocation()
+            }
+        }
+
+        binding.stopBt.setOnClickListener {
+            handleMyLocation()
+            binding.stopBt.isVisible = false
+            binding.pauseBt.isVisible = false
+            binding.startBt.isVisible = true
+        }
+
 
         if (savedInstanceState != null) {
             lastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION)
@@ -83,41 +121,8 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     override fun onMapReady(googleMap: GoogleMap) {
         this.mGoogleMap = googleMap
-//        mGoogleMap!!.uiSettings.isZoomControlsEnabled = true
-
-        // [START_EXCLUDE]
-        // [START map_current_place_set_info_window_adapter]
-        // Use a custom info window adapter to handle multiple lines of text in the
-        // info window contents.
-//        this.mGoogleMap?.setInfoWindowAdapter(object : GoogleMap.InfoWindowAdapter {
-//            // Return null here, so that getInfoContents() is called next.
-//            override fun getInfoWindow(arg0: Marker): View? {
-//                return null
-//            }
-//
-//            override fun getInfoContents(marker: Marker): View {
-//                // Inflate the layouts for the info window, title and snippet.
-//                val infoWindow = layoutInflater.inflate(R.layout.custom_info_contents,
-//                    findViewById<FrameLayout>(R.id.map), false)
-//                val title = infoWindow.findViewById<TextView>(R.id.title)
-//                title.text = marker.title
-//                val snippet = infoWindow.findViewById<TextView>(R.id.snippet)
-//                snippet.text = marker.snippet
-//                return infoWindow
-//            }
-//        })
-        // [END map_current_place_set_info_window_adapter]
 
         // Prompt the user for permission.
         getLocationPermission()
@@ -130,58 +135,66 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         getDeviceLocation()
 
         mGoogleMap?.setOnMyLocationButtonClickListener {
-            val latLng = LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude)
-            Log.v("GPS","Current location: $lastKnownLocation")
-            mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng,15f))
-            val markerOptions = MarkerOptions()
-            if (markerPoints.isEmpty()) {
-                markerPoints.add(latLng)
-            }
-            else {
-                markerPoints.clear()
-                mGoogleMap!!.clear()
-                markerPoints.add(latLng)
-            }
-            markerOptions.position(latLng)
-            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-            mGoogleMap!!.addMarker(markerOptions.title("You are here"))
-            true
+            handleMyLocation()
         }
+
 
         mGoogleMap!!.setOnMapClickListener {
             if (markerPoints.size > 1){
                 markerPoints.clear()
                 mGoogleMap!!.clear()
+                isEnoughTwoPoint = false
             }
+
+
             // Adding new item to the ArrayList
             markerPoints.add(it)
             // Creating MarkerOptions
             val markerOptions = MarkerOptions()
             // Setting the position of the marker
             markerOptions.position(it)
-            if (markerPoints.size == 1)
-                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-            else if (markerPoints.size == 2) {
-                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+
+
+            if  (!it.equals(lastKnownLocation)){
+                // Only Des in Lat Array
+                if (markerPoints.size == 1) {
+                    handleMyLocation()
+                    // Adding new item to the ArrayList
+                    markerPoints.add(it)
+
+                    markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                    Log.v(TAG,"Array point size : ${markerPoints.size}")
+                }
+                // Enough 2 point in Lat Array
+                else if (markerPoints.size == 2){
+                    markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                }
             }
+
+//            if (markerPoints.size == 1)
+//                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+//            else if (markerPoints.size == 2) {
+//                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+//            }
             // Add new marker to the Google Map Android API V2
             mGoogleMap!!.addMarker(markerOptions)
             // Checks, whether start and end locations are captured
             if (markerPoints.size >= 2){
+                isEnoughTwoPoint = true
                 val origin = markerPoints[0]
                 val dest = markerPoints[1]
 
                 val polylineOptions = PolylineOptions()
 
-                // Getting URL to the Google Directions API
-                println("https://api.mapbox.com/directions/v5/mapbox/walking/" +
+                // Print URL to the Google Directions API
+                Log.v(TAG,"Direction API Url : https://api.mapbox.com/directions/v5/mapbox/walking/" +
                         "${origin.longitude}%2C" +
                         "${origin.latitude}%3B" +
                         "${dest.longitude}%2C" +
                         "${dest.latitude}?alternatives=false&geometries=geojson&overview=simplified&steps=false&access_token=pk.eyJ1Ijoid2VlZGx5IiwiYSI6ImNsN2VpMW56bjAwa2gzbnBnaHd2MjJmZGYifQ.It2pYYoWNWQ-9Ogs49OUMg"
                 )
-
-                val coordinates = getDirection(origin,dest)
+                val route = getDirection(origin,dest)
+                val coordinates = route.geometry.coordinates
 
                 var nextStep = origin
                 for (step in coordinates){
@@ -193,16 +206,17 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 polylineOptions.add(nextStep,dest)
                 mGoogleMap!!.addPolyline(polylineOptions)
 
+                updateTravelInfo(route.distance,route.duration)
             }
         }
     }
 
-    private fun getDirection(origin: LatLng ,dest: LatLng) : List<List<Double>>{
+    private fun getDirection(origin: LatLng ,dest: LatLng) : Route {
         val retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create()).build()
         val service: ApiInterface by lazy { retrofit.create(ApiInterface::class.java)}
-        var  coordinates : List<List<Double>>
+        var route : Route?
 
-        coordinates = runBlocking {
+        route = runBlocking {
             withContext(Dispatchers.Default) {
                 val routes = service.getPlaces(
                     origin.longitude,
@@ -210,16 +224,12 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                     dest.longitude,
                     dest.latitude
                 )
-                coordinates = routes.routes[0].geometry.coordinates
+                route = routes.routes[0]
             }
-            coordinates
+            route
         }
-        return coordinates
+        return route!!
     }
-
-
-
-
 
     override fun onSaveInstanceState(outState: Bundle) {
         mGoogleMap?.let { map ->
@@ -238,6 +248,28 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION)
         }
 
+    }
+
+    // Handle my location action
+    private fun handleMyLocation() : Boolean{
+            val latLng = LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude)
+            Log.v(TAG,"Current location: $lastKnownLocation")
+            mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng,15f))
+            val markerOptions = MarkerOptions()
+            if (markerPoints.isEmpty()) {
+                markerPoints.add(latLng)
+            }
+            else {
+                markerPoints.clear()
+                mGoogleMap!!.clear()
+                markerPoints.add(latLng)
+            }
+            markerOptions.position(latLng)
+            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+            mGoogleMap!!.addMarker(markerOptions.title("You are here"))
+
+            isEnoughTwoPoint = false
+            return true
     }
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.current_place_menu, menu)
@@ -260,6 +292,28 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         }
         updateLocationUI()
     }
+    private fun setupTitle(){
+        binding.distanceTv.titleTv.text = getString(R.string.distance_title)
+        binding.distanceTv.contentTv.text = "0"
+        binding.durationTv.titleTv.text = getString(R.string.duration_title)
+        binding.durationTv.contentTv.text = "0"
+        binding.caloriesTv.titleTv.text = getString(R.string.calorie_title)
+        binding.caloriesTv.contentTv.text = "0"
+    }
+    private fun updateTravelInfo(distance : Double, duration : Double){
+        val kilometer = distance / 1000
+        val hours = (duration / 3600).toInt()
+        val minus = ((duration - hours * 3600) / 60).toInt()
+        val second = (duration - hours * 3600 - minus * 60).toInt()
+        binding.distanceTv.contentTv.text = baseContext.resources.getString(R.string.distances,kilometer)
+        binding.caloriesTv.contentTv.text = baseContext.resources.getString(R.string.calories,kilometer * KILOMETER_TO_CALORIE)
+        binding.durationTv.contentTv.text = baseContext.resources.getString(R.string.duration,
+            hours,
+            minus,
+            second)
+    }
+
+
     @SuppressLint("MissingPermission")
     private fun updateLocationUI(){
         println("Update_location")
@@ -286,6 +340,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     private fun getDeviceLocation() {
         try {
             if(locationPermissionGranted){
+                Log.v(TAG,"Get current location")
                 val locationResult = fusedLocationProviderClient.lastLocation
                 locationResult.addOnCompleteListener(this){
                     task ->
@@ -293,11 +348,12 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                         // Set the map's camera position to the current location of the device.
                         lastKnownLocation = task.result
                         if (lastKnownLocation != null) {
+                            Log.v(TAG,"lastKnownLocation :$lastKnownLocation")
                             mGoogleMap?.moveCamera(
                                 (CameraUpdateFactory.newLatLngZoom(
                                     LatLng(
                                         lastKnownLocation!!.latitude,
-                                        lastKnownLocation!!.altitude
+                                        lastKnownLocation!!.longitude
                                     ), DEFAULT_ZOOM.toFloat()
                                 ))
                             )
@@ -420,18 +476,19 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 //            .setItems(likelyPlaceNames, listener)
 //            .show()
 //    }
+    override fun onStop() {
+        SmartLocation.with(baseContext).location().stop()
+    super.onStop()
+}
     companion object {
         private val TAG = GpsMap::class.java.simpleName
-        private const val DEFAULT_ZOOM = 0
+        private const val DEFAULT_ZOOM = 15
         private const val PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1
 
         // Keys for storing activity state.
         // [START maps_current_place_state_keys]
         private const val KEY_CAMERA_POSITION = "camera_position"
         private const val KEY_LOCATION = "location"
-        // [END maps_current_place_state_keys]
 
-        // Used for selecting the current place.
-        private const val M_MAX_ENTRIES = 10
     }
 }

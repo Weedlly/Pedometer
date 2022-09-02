@@ -68,5 +68,8 @@ dependencies {
     // Handle  error 400
     implementation 'com.android.volley:volley:1.2.1'
 
+    // Continuous update location
+    implementation 'io.nlopez.smartlocation:library:3.3.3'
+
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1"
 }

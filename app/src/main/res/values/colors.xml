@@ -12,5 +12,7 @@
     <color name="silver">#bdbdbd</color>
     <color name="blue_gray">#272f3c</color>
     <color name="dark_green">#141a26</color>
-    <color name="red">#ff8a65</color>
+    <color name="red">#ff8b8b</color>
+    <color name="blue_white">#eef7fe</color>
+    <color name="blue">#4ba1f9</color>
 </resources>

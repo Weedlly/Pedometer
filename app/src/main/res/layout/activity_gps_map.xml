@@ -8,7 +8,8 @@
     tools:context=".GpsMap"
     android:orientation="vertical"
     android:weightSum="4"
-    android:background="@color/white">
+    android:background="@color/blue_white"
+    >
     <fragment
         android:id="@+id/map"
         map:mapId="@string/map_id"
@@ -27,8 +28,7 @@
         android:layout_weight="1"
         android:weightSum="2"
         android:orientation="vertical"
-        android:paddingBottom="10dp"
-        android:paddingTop="10dp"
+        android:padding="15dp"
         >
         <LinearLayout
             android:layout_width="match_parent"
@@ -37,9 +37,7 @@
             android:orientation="horizontal"
             android:weightSum="3"
             android:baselineAligned="false"
-            android:background="@color/white"
-            android:paddingBottom="10dp"
-            android:paddingTop="10dp">
+            android:background="@color/white">
             <include
                 android:id="@+id/distance_tv"
                 android:layout_width="0dp"
@@ -59,38 +57,50 @@
                 android:layout_weight="1"
                 layout="@layout/textview_custom"/>
         </LinearLayout>
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_weight="1"
             android:layout_height="0dp"
-            android:weightSum="2"
-            android:orientation="horizontal"
-            android:background="@color/white"
-            android:paddingBottom="10dp"
-            android:paddingTop="10dp"
+            android:padding="5dp"
+            android:background="@color/blue_white"
             >
             <Button
                 android:id="@+id/stop_bt"
-                android:layout_width="0dp"
+                android:layout_width="160dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="STOP"
-                android:layout_margin="5dp"
+                android:text="@string/stop_button"
                 style="@style/MaterialAlertDialog.Material3"
+                map:layout_constraintStart_toStartOf="parent"
                 android:textColor="@color/white"
+                android:backgroundTint="@color/red"
+                android:textStyle="bold"
+                android:visibility="invisible"
                 />
             <Button
-                android:id="@+id/startAndPause_bt"
-                android:layout_width="0dp"
+                android:id="@+id/pause_bt"
+                android:layout_width="160dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="START"
-                android:layout_margin="5dp"
+                map:layout_constraintEnd_toEndOf="parent"
+                android:text="@string/pause_button"
                 style="@style/MaterialAlertDialog.Material3"
                 android:textColor="@color/white"
+                android:backgroundTint="@color/blue"
+                android:textStyle="bold"
+                android:visibility="invisible"
                 />
-        </LinearLayout>
+            <Button
+                android:id="@+id/start_bt"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="@string/start_button"
+                android:layout_marginRight="10dp"
+                android:layout_marginLeft="10dp"
+                style="@style/MaterialAlertDialog.Material3"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/blue"
+                android:textStyle="bold"
+                />
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
-
 </LinearLayout>
 
