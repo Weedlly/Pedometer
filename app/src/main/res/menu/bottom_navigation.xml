@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/home"
+        android:title="@string/title_activity_gps_map"
+        android:icon="@drawable/amu_bubble_mask"
+        />
+    <item android:id="@+id/gps_training"
+        android:title="@string/title_activity_gps_map"
+        />
+    <item android:id="@+id/achieve"
+        android:title="@string/title_activity_gps_map"
+        android:icon="@drawable/amu_bubble_mask"
+        />
+
+</menu>

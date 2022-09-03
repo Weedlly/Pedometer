@@ -23,8 +23,8 @@ import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
 
-const val FOOT_TO_METER = 0.3048
-const val FOOT_TO_CALORIE = 0.00032
+const val FOOT_TO_METER = 0.7867
+const val FOOT_TO_CALORIE = 0.0667
 class CountStep : AppCompatActivity(), SensorEventListener {
     //Sensor and CountStep
     private var sensorManager : SensorManager? = null
@@ -55,6 +55,9 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         loadData()
         resetStep()
 
+        //init data to test
+        testData()
+
         //Chart visualise
         barChart = binding!!.weeklyBarChartBc
 
@@ -65,6 +68,28 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
 
+    private fun testData(){
+        totalStep = 500f
+        val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
+        binding!!.stepsTakenTv.text = ("$currentSteps")
+
+        val percent = (currentSteps * 100 / maxStep).roundToInt()
+        binding!!.percentTv.text =
+            baseContext.resources.getString(R.string.percent_aim, percent)
+
+        binding!!.progressCircular.apply {
+            setProgressWithAnimation(currentSteps.toFloat())
+        }
+
+        binding!!.distanceContentTv.text = baseContext.resources.getString(
+            R.string.distances,
+            FOOT_TO_METER * currentSteps
+        )
+        binding!!.caloriesContentTv.text = baseContext.resources.getString (
+            R.string.calories,
+            FOOT_TO_CALORIE * currentSteps
+        )
+    }
     override fun onResume() {
         super.onResume()
         running = true

@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.core.view.marginRight
 import com.example.pedometer.BuildConfig.MAPS_API_KEY
 import com.example.pedometer.databinding.ActivityGpsMapBinding
 import com.example.pedometer.model.Route
@@ -33,7 +32,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 private const val baseUrl = "https://api.mapbox.com"
 
-const val KILOMETER_TO_CALORIE = 55
+const val KILOMETER_TO_CALORIE = 84
 class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityGpsMapBinding
@@ -57,7 +56,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     private var isEnoughTwoPoint = false
 
-    private var coroutine = CoroutineScope(Dispatchers.IO)
+    private var isUpdateLocation = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,21 +68,23 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         updateTravelInfo(0.0,0.0)
 
         // Update continuous location
-        coroutine.launch{
+        CoroutineScope(Dispatchers.IO).launch{
             while (true) {
                 delay(10000)
                 SmartLocation.with(baseContext).location().start{
-                    if (locationPermissionGranted) {
-                        lastKnownLocation = it
+                    lastKnownLocation = it
+                    if (locationPermissionGranted && isUpdateLocation) {
+                        updateTrainingRoute(LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude))
                         Log.v(TAG, "Update location: $lastKnownLocation")
                     }
                 }
             }
         }
-        // Press Start Button to show Stop and Pause Button
+        // Press Start Button to show Stop and Pause Button, also active GPS Training
         binding.startBt.setOnClickListener {
 
             if (isEnoughTwoPoint) {
+                isUpdateLocation = true
                 binding.startBt.isVisible = false
                 binding.stopBt.isVisible = true
                 binding.pauseBt.isVisible = true
@@ -97,11 +98,26 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             }
         }
 
+        // Stopping Gps training then show Start button
         binding.stopBt.setOnClickListener {
             handleMyLocation()
+            isUpdateLocation = false
             binding.stopBt.isVisible = false
             binding.pauseBt.isVisible = false
             binding.startBt.isVisible = true
+        }
+
+        binding.pauseBt.setOnClickListener {
+            if (binding.pauseBt.text == "PAUSE") {
+                isUpdateLocation = false
+                binding.pauseBt.text = getString(R.string.continue_button)
+            }
+            // binding.pauseBt.text = CONTINUE
+            else{
+                isUpdateLocation = true
+                updateTrainingRoute(LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude))
+                binding.pauseBt.text = getString(R.string.pause_button)
+            }
         }
 
 
@@ -126,7 +142,6 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
         // Prompt the user for permission.
         getLocationPermission()
-        // [END_EXCLUDE]
 
         // Turn on the My Location layer and the related control on the map.
         updateLocationUI()
@@ -138,76 +153,134 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             handleMyLocation()
         }
 
-
         mGoogleMap!!.setOnMapClickListener {
-            if (markerPoints.size > 1){
-                markerPoints.clear()
-                mGoogleMap!!.clear()
-                isEnoughTwoPoint = false
+            setupTrainingRoute(it)
+        }
+    }
+    private fun setupTrainingRoute(it: LatLng){
+        if (markerPoints.size > 1){
+            markerPoints.clear()
+            mGoogleMap!!.clear()
+            isEnoughTwoPoint = false
+        }
+
+
+        // Adding new item to the ArrayList
+        markerPoints.add(it)
+        // Creating MarkerOptions
+        val markerOptions = MarkerOptions()
+        // Setting the position of the marker
+        markerOptions.position(it)
+
+
+        if  (!it.equals(lastKnownLocation)){
+            // Only Des in Lat Array
+            if (markerPoints.size == 1) {
+                handleMyLocation()
+                // Adding new item to the ArrayList
+                markerPoints.add(it)
+
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                Log.v(TAG,"Array point size : ${markerPoints.size}")
             }
-
-
-            // Adding new item to the ArrayList
-            markerPoints.add(it)
-            // Creating MarkerOptions
-            val markerOptions = MarkerOptions()
-            // Setting the position of the marker
-            markerOptions.position(it)
-
-
-            if  (!it.equals(lastKnownLocation)){
-                // Only Des in Lat Array
-                if (markerPoints.size == 1) {
-                    handleMyLocation()
-                    // Adding new item to the ArrayList
-                    markerPoints.add(it)
-
-                    markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                    Log.v(TAG,"Array point size : ${markerPoints.size}")
-                }
-                // Enough 2 point in Lat Array
-                else if (markerPoints.size == 2){
-                    markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                }
+            // Enough 2 point in Lat Array
+            else if (markerPoints.size == 2){
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
             }
+        }
 
 //            if (markerPoints.size == 1)
 //                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
 //            else if (markerPoints.size == 2) {
 //                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
 //            }
-            // Add new marker to the Google Map Android API V2
-            mGoogleMap!!.addMarker(markerOptions)
-            // Checks, whether start and end locations are captured
-            if (markerPoints.size >= 2){
-                isEnoughTwoPoint = true
-                val origin = markerPoints[0]
-                val dest = markerPoints[1]
+        // Add new marker to the Google Map Android API V2
+        mGoogleMap!!.addMarker(markerOptions)
+        // Checks, whether start and end locations are captured
+        if (markerPoints.size >= 2){
+            isEnoughTwoPoint = true
+            val origin = markerPoints[0]
+            val dest = markerPoints[1]
 
-                val polylineOptions = PolylineOptions()
+            val polylineOptions = PolylineOptions()
 
-                // Print URL to the Google Directions API
-                Log.v(TAG,"Direction API Url : https://api.mapbox.com/directions/v5/mapbox/walking/" +
-                        "${origin.longitude}%2C" +
-                        "${origin.latitude}%3B" +
-                        "${dest.longitude}%2C" +
-                        "${dest.latitude}?alternatives=false&geometries=geojson&overview=simplified&steps=false&access_token=pk.eyJ1Ijoid2VlZGx5IiwiYSI6ImNsN2VpMW56bjAwa2gzbnBnaHd2MjJmZGYifQ.It2pYYoWNWQ-9Ogs49OUMg"
-                )
-                val route = getDirection(origin,dest)
-                val coordinates = route.geometry.coordinates
+            // Print URL to the Google Directions API
+            Log.v(TAG,"Direction API Url : https://api.mapbox.com/directions/v5/mapbox/walking/" +
+                    "${origin.longitude}%2C" +
+                    "${origin.latitude}%3B" +
+                    "${dest.longitude}%2C" +
+                    "${dest.latitude}?alternatives=false&geometries=geojson&overview=simplified&steps=false&access_token=pk.eyJ1Ijoid2VlZGx5IiwiYSI6ImNsN2VpMW56bjAwa2gzbnBnaHd2MjJmZGYifQ.It2pYYoWNWQ-9Ogs49OUMg"
+            )
+            val route = getDirection(origin,dest)
+            val coordinates = route.geometry.coordinates
 
-                var nextStep = origin
-                for (step in coordinates){
-                    val lng = LatLng(step[1],step[0])
-                    polylineOptions.add(nextStep,lng)
-                    nextStep = lng
-                }
-
-                polylineOptions.add(nextStep,dest)
-                mGoogleMap!!.addPolyline(polylineOptions)
-
-                updateTravelInfo(route.distance,route.duration)
+            var nextStep = origin
+            for (step in coordinates){
+                val lng = LatLng(step[1],step[0])
+                polylineOptions.add(nextStep,lng)
+                nextStep = lng
             }
+
+            polylineOptions.add(nextStep,dest)
+            mGoogleMap!!.addPolyline(polylineOptions)
+
+            updateTravelInfo(route.distance,route.duration)
+        }
+    }
+
+    private fun updateTrainingRoute(it: LatLng){
+        var dest : LatLng = it
+        if (markerPoints.size > 1){
+            dest = markerPoints[1]
+            markerPoints.clear()
+            mGoogleMap!!.clear()
+            isEnoughTwoPoint = true
+        }
+        // Adding new item to the ArrayList
+        markerPoints.add(it)
+        markerPoints.add(dest)
+        // Creating MarkerOptions
+        val markerOptionsDest = MarkerOptions()
+        val markerOptionsCurrent = MarkerOptions()
+        // Setting the position of the marker
+        markerOptionsCurrent.position(it).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+        markerOptionsDest.position(dest).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+
+        Log.v(TAG,"Array point size : ${markerPoints.size}")
+
+        // Add new marker to the Google Map Android API V2
+        mGoogleMap!!.addMarker(markerOptionsCurrent)
+
+        mGoogleMap!!.addMarker(markerOptionsDest)
+        // Checks, whether start and end locations are captured
+        if (markerPoints.size >= 2){
+            isEnoughTwoPoint = true
+            val origin = markerPoints[0]
+            dest = markerPoints[1]
+
+            val polylineOptions = PolylineOptions()
+
+            // Print URL to the Google Directions API
+            Log.v(TAG,"Direction API Url : https://api.mapbox.com/directions/v5/mapbox/walking/" +
+                    "${origin.longitude}%2C" +
+                    "${origin.latitude}%3B" +
+                    "${dest.longitude}%2C" +
+                    "${dest.latitude}?alternatives=false&geometries=geojson&overview=simplified&steps=false&access_token=pk.eyJ1Ijoid2VlZGx5IiwiYSI6ImNsN2VpMW56bjAwa2gzbnBnaHd2MjJmZGYifQ.It2pYYoWNWQ-9Ogs49OUMg"
+            )
+            val route = getDirection(origin,dest)
+            val coordinates = route.geometry.coordinates
+
+            var nextStep = origin
+            for (step in coordinates){
+                val lng = LatLng(step[1],step[0])
+                polylineOptions.add(nextStep,lng)
+                nextStep = lng
+            }
+
+            polylineOptions.add(nextStep,dest)
+            mGoogleMap!!.addPolyline(polylineOptions)
+
+            updateTravelInfo(route.distance,route.duration)
         }
     }
 
@@ -316,7 +389,6 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     @SuppressLint("MissingPermission")
     private fun updateLocationUI(){
-        println("Update_location")
         if (mGoogleMap == null){
             return
         }

@@ -38,13 +38,13 @@
             />
 
         <activity
-            android:name=".CountStep"
-            android:exported="true"
-            android:label="@string/title_activity_gps_map" />
-        <activity
             android:name=".GpsMap"
             android:exported="true"
-            android:label="@string/title_activity_gps_map">
+            android:label="Pedometer"/>
+        <activity
+            android:name=".CountStep"
+            android:exported="true"
+            android:label="@string/title_activity_gps_map" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
