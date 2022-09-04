@@ -2,6 +2,7 @@ package com.example.pedometer
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
@@ -11,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.get
 import androidx.core.view.isVisible
 import com.example.pedometer.BuildConfig.MAPS_API_KEY
 import com.example.pedometer.databinding.ActivityGpsMapBinding
@@ -25,6 +27,7 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.net.PlacesClient
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import io.nlopez.smartlocation.SmartLocation
 import kotlinx.coroutines.*
 import retrofit2.Retrofit
@@ -120,6 +123,8 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             }
         }
 
+        //Bottom navigation
+        bottomNavigationHandle()
 
         if (savedInstanceState != null) {
             lastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION)
@@ -157,6 +162,25 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             setupTrainingRoute(it)
         }
     }
+    private fun bottomNavigationHandle(){
+        val bottomNavigationView : BottomNavigationView = binding!!.bottomNavigation
+
+        binding!!.bottomNavigation.menu[0].isChecked = true
+        bottomNavigationView.setOnItemSelectedListener {
+            when(it.itemId){
+                R.id.home-> {
+                    startActivity(Intent(this,CountStep::class.java))
+                }
+//                R.id.achieve-> {
+//
+//                    binding!!.bottomNavigation.menu[1].isCheckable = true
+//                }
+            }
+            true
+        }
+    }
+
+
     private fun setupTrainingRoute(it: LatLng){
         if (markerPoints.size > 1){
             markerPoints.clear()

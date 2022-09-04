@@ -1,6 +1,7 @@
 package com.example.pedometer
 
 import android.content.Context
+import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -10,6 +11,9 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.view.get
+import com.example.pedometer.database.Database
 import com.example.pedometer.databinding.ActivityCountStepBinding
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
@@ -19,6 +23,7 @@ import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
@@ -31,13 +36,17 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private var running = false
     private var totalStep : Float = 0f
     private var previousTotalSteps = 0f
-    private var maxStep = 1000f
 
-    //Chart
-    private val MAX_X_VALUE = 7
-    private val MAX_Y_VALUE = maxStep
-    private val MIN_Y_VALUE = maxStep / 10
-    private val X_TITLE : Array<String> = arrayOf("SUN","MON","TUE","WED","THU","FRI","SAT")
+    //  Static data
+    companion object {
+        private var maxStep = 1000f
+        private const val MAX_X_VALUE = 7
+        private val MAX_Y_VALUE = maxStep
+        private val MIN_Y_VALUE = maxStep / 10
+        private val X_TITLE : Array<String> = arrayOf("SUN","MON","TUE","WED","THU","FRI","SAT")
+
+    }
+
     private var barChart : BarChart? = null
 
     private var binding : ActivityCountStepBinding? = null
@@ -49,6 +58,8 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         supportActionBar!!.setCustomView(R.layout.abs_layout)
         supportActionBar!!.title = "Pedometer"
+        //Bottom navigation
+        bottomNavigationHandle()
 
         //Counter monitor
         loadTime()
@@ -66,8 +77,27 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         prepareChartData(data)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+
+        Database(baseContext).save()
     }
 
+    private fun bottomNavigationHandle(){
+        val bottomNavigationView : BottomNavigationView = binding!!.bottomNavigation
+
+        binding!!.bottomNavigation.menu[1].isChecked = true
+        bottomNavigationView.setOnItemSelectedListener {
+            when(it.itemId){
+                R.id.gps_training-> {
+                    startActivity(Intent(this,GpsMap::class.java))
+                }
+//                R.id.achieve-> {
+//
+//                    binding!!.bottomNavigation.menu[1].isCheckable = true
+//                }
+            }
+            true
+        }
+    }
     private fun testData(){
         totalStep = 500f
         val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
@@ -180,14 +210,15 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         barChart!!.description.isEnabled = false
         barChart!!.setDrawValueAboveBar(false)
         barChart!!.setDrawGridBackground(true)
-        barChart!!.setBackgroundColor(resources.getColor(R.color.blue_gray))
-        barChart!!.setGridBackgroundColor(resources.getColor(R.color.blue_gray))
+
+        barChart!!.setBackgroundColor(ContextCompat.getColor(baseContext,R.color.blue_gray))
+        barChart!!.setGridBackgroundColor(ContextCompat.getColor(baseContext,R.color.blue_gray))
 
         barChart!!.xAxis.isEnabled = true
         barChart!!.axisLeft.isEnabled = false
         barChart!!.axisRight.isEnabled = false
         barChart!!.xAxis.position = XAxis.XAxisPosition.BOTTOM
-        barChart!!.xAxis.textColor = resources.getColor(R.color.silver)
+        barChart!!.xAxis.textColor = ContextCompat.getColor(baseContext,R.color.silver)
         barChart!!.xAxis.textSize = 12f
 
         val xAxis : XAxis = barChart!!.xAxis
@@ -217,8 +248,8 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         }
         val set1 = BarDataSet(values,null)
 
-        set1.color = resources.getColor(R.color.yellow)
-        set1.valueTextColor = resources.getColor(R.color.white)
+        set1.color = ContextCompat.getColor(baseContext,R.color.yellow)
+        set1.valueTextColor = ContextCompat.getColor(baseContext,R.color.white)
 
         val dataSets = arrayListOf<IBarDataSet>()
         dataSets.add(set1)
@@ -230,4 +261,5 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         barChart!!.data = barData
         barChart!!.invalidate()
     }
+
 }

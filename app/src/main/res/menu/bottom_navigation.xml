@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/home"
-        android:title="@string/title_activity_gps_map"
-        android:icon="@drawable/amu_bubble_mask"
-        />
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/bottom_menu"
+    >
     <item android:id="@+id/gps_training"
-        android:title="@string/title_activity_gps_map"
+        android:title=""
+        android:icon="@drawable/ic_baseline_map_24"
+        />
+    <item android:id="@+id/home"
+        android:title=""
+        android:icon="@drawable/ic_baseline_directions_run_24"
         />
     <item android:id="@+id/achieve"
-        android:title="@string/title_activity_gps_map"
+        android:title=""
         android:icon="@drawable/amu_bubble_mask"
         />
 

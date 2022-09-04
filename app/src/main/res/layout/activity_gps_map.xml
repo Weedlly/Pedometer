@@ -3,19 +3,21 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_height="match_parent"
     android:layout_width="match_parent"
     tools:context=".GpsMap"
     android:orientation="vertical"
-    android:weightSum="4"
+    android:weightSum="15"
     android:background="@color/blue_white"
     >
+
     <fragment
         android:id="@+id/map"
         map:mapId="@string/map_id"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_weight="3"
+        android:layout_weight="10"
         android:layout_height="0dp"
         map:uiZoomControls="true"
         map:uiRotateGestures="true"
@@ -25,7 +27,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_weight="4"
         android:weightSum="2"
         android:orientation="vertical"
         android:padding="15dp"
@@ -102,5 +104,15 @@
                 />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_gravity="bottom"
+        app:menu="@menu/bottom_navigation"
+        android:background="@color/blue_gray"
+        app:itemRippleColor="@color/yellow"
+        />
 </LinearLayout>
 
