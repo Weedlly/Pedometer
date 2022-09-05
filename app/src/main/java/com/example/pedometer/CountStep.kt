@@ -78,7 +78,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-        Database(baseContext).save()
+        Database(baseContext).isExist()
     }
 
     private fun bottomNavigationHandle(){

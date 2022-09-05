@@ -16,7 +16,7 @@ import androidx.core.view.get
 import androidx.core.view.isVisible
 import com.example.pedometer.BuildConfig.MAPS_API_KEY
 import com.example.pedometer.databinding.ActivityGpsMapBinding
-import com.example.pedometer.model.Route
+import com.example.pedometer.model.gps.Route
 import com.example.pedometer.network.ApiInterface
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -163,9 +163,9 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         }
     }
     private fun bottomNavigationHandle(){
-        val bottomNavigationView : BottomNavigationView = binding!!.bottomNavigation
+        val bottomNavigationView : BottomNavigationView = binding.bottomNavigation
 
-        binding!!.bottomNavigation.menu[0].isChecked = true
+        binding.bottomNavigation.menu[0].isChecked = true
         bottomNavigationView.setOnItemSelectedListener {
             when(it.itemId){
                 R.id.home-> {

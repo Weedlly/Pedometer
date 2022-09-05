@@ -1,4 +1,4 @@
-package com.example.pedometer.model
+package com.example.pedometer.model.gps
 
 data class Waypoint(
     val distance: Double,
