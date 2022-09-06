@@ -14,7 +14,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import com.example.pedometer.database.Database
+import com.example.pedometer.database.db
 import com.example.pedometer.databinding.ActivityCountStepBinding
+import com.example.pedometer.model.countstep.Week
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.components.YAxis
@@ -24,6 +26,7 @@ import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.firebase.firestore.ktx.toObjects
 import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
@@ -36,15 +39,17 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private var running = false
     private var totalStep : Float = 0f
     private var previousTotalSteps = 0f
+    private var myKey : Int? = null
+    private var myToday : String? = null
 
     //  Static data
     companion object {
+        private const val TAG = "CountStep"
         private var maxStep = 1000f
         private const val MAX_X_VALUE = 7
         private val MAX_Y_VALUE = maxStep
         private val MIN_Y_VALUE = maxStep / 10
         private val X_TITLE : Array<String> = arrayOf("SUN","MON","TUE","WED","THU","FRI","SAT")
-
     }
 
     private var barChart : BarChart? = null
@@ -61,24 +66,27 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         //Bottom navigation
         bottomNavigationHandle()
 
+        // Get My database Key
+        if (Database(baseContext).isKeyExist()) {
+            myKey = Database(baseContext).getMyKey()
+        }
+
         //Counter monitor
         loadTime()
         loadData()
         resetStep()
+        checkNewDay()
 
         //init data to test
-        testData()
+        initData(500f)
 
         //Chart visualise
         barChart = binding!!.weeklyBarChartBc
 
-        val data = createChartData()
-        configureChartAppearance()
-        prepareChartData(data)
+        createChartData()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-        Database(baseContext).isExist()
     }
 
     private fun bottomNavigationHandle(){
@@ -98,9 +106,12 @@ class CountStep : AppCompatActivity(), SensorEventListener {
             true
         }
     }
-    private fun testData(){
-        totalStep = 500f
-        val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
+    private fun countCurrentSteps() : Int{
+        return totalStep.toInt() - previousTotalSteps.toInt()
+    }
+    private fun initData(step : Float){
+        totalStep = step
+        val currentSteps = countCurrentSteps()
         binding!!.stepsTakenTv.text = ("$currentSteps")
 
         val percent = (currentSteps * 100 / maxStep).roundToInt()
@@ -120,6 +131,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
             FOOT_TO_CALORIE * currentSteps
         )
     }
+
     override fun onResume() {
         super.onResume()
         running = true
@@ -129,8 +141,14 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         }
         else{
             sensorManager?.registerListener(this,stepSensor,SensorManager.SENSOR_DELAY_FASTEST)
-            Log.v("MainActivity","Start")
+            Log.v(TAG,"Start")
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Database(baseContext).updateData(myKey!!,myToday!!,totalStep.toInt())
+        Log.v(TAG,"Activity on pause, data updating!!!")
     }
 
     override fun onSensorChanged(p0: SensorEvent?) {
@@ -178,14 +196,41 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private fun saveData(){
         val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
-        editor.putFloat("key1",previousTotalSteps)
+        editor.putFloat("previousTotalSteps",previousTotalSteps)
+
+        val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
+        editor.putString("Today",today)
+        Log.v(TAG,"Today save is: $today")
         editor.apply()
+
+    }
+    private fun checkNewDay(){
+        val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
+        val oldDay = sharedPreferences.getString("Today","")
+        Log.v(TAG,"Old day: $oldDay")
+        val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
+        if (oldDay == today){
+            Log.v(TAG,"Still in today: $today")
+        }
+        else {
+            // Reset data
+            Log.v(TAG, "Change to new day is: $today")
+            databaseUpdate(today!!,0f,0f)
+            initData(0f)
+        }
+        myToday = today
     }
     private fun loadData(){
         val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
-        val saveNumber = sharedPreferences.getFloat("key1",0f)
-        Log.v("MainActivity","$saveNumber")
+        val saveNumber = sharedPreferences.getFloat("previousTotalSteps",0f)
+        Log.v(TAG,"$saveNumber")
         previousTotalSteps = saveNumber
+    }
+    private fun databaseUpdate(today : String,totalSteps : Float, previousStep : Float){
+        Database(baseContext).updateData(myKey!!,today,totalSteps.toInt())
+        totalStep = totalSteps
+        previousTotalSteps = previousStep
+
     }
     private fun loadTime(){
         val calendarInstance = Calendar.getInstance()
@@ -237,23 +282,32 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         axisRight.axisMinimum = 0f
     }
 
-    private fun createChartData(): BarData {
+    private fun createChartData() {
         val values = arrayListOf<BarEntry>()
-        for (i in 0 until MAX_X_VALUE) {
-            val x = i.toFloat()
-            val y = (MIN_Y_VALUE.toInt()..MAX_Y_VALUE.toInt()).random().toFloat()
-            values.add(
-                BarEntry(x, y)
-            )
-        }
-        val set1 = BarDataSet(values,null)
+        db.collection("Week").whereEqualTo("key", myKey)
+            .get().addOnSuccessListener {
+                if (it.documents.isNotEmpty()) {
+                    val week = it.toObjects<Week>()[0]
 
-        set1.color = ContextCompat.getColor(baseContext,R.color.yellow)
-        set1.valueTextColor = ContextCompat.getColor(baseContext,R.color.white)
+                    var i = 0f
+                    values.add(BarEntry(i, week.mon!!.toFloat()))
+                    values.add(BarEntry(i++,week.tue!!.toFloat()))
+                    values.add(BarEntry(i++,week.wed!!.toFloat()))
+                    values.add(BarEntry(i++,week.thu!!.toFloat()))
+                    values.add(BarEntry(i++,week.fri!!.toFloat()))
+                    values.add(BarEntry(i++,week.sat!!.toFloat()))
+                    values.add(BarEntry(i++,week.sun!!.toFloat()))
+                    val set1 = BarDataSet(values,null)
 
-        val dataSets = arrayListOf<IBarDataSet>()
-        dataSets.add(set1)
-        return BarData(dataSets)
+                    set1.color = ContextCompat.getColor(baseContext,R.color.yellow)
+                    set1.valueTextColor = ContextCompat.getColor(baseContext,R.color.white)
+
+                    val dataSets = arrayListOf<IBarDataSet>()
+                    dataSets.add(set1)
+                    configureChartAppearance()
+                    prepareChartData(BarData(dataSets))
+                }
+            }
     }
 
     private fun prepareChartData(barData : BarData){
@@ -261,5 +315,4 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         barChart!!.data = barData
         barChart!!.invalidate()
     }
-
 }

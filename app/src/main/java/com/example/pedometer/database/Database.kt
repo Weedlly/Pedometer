@@ -9,14 +9,12 @@ import com.google.firebase.firestore.ktx.toObjects
 import com.google.firebase.ktx.Firebase
 import java.io.File
 import kotlin.random.Random
-
+val db = Firebase.firestore
 class Database (context: Context) {
     companion object {
         const val TAG = "Database"
 
     }
-
-    private val db = Firebase.firestore
 
     private val filename: String = "my_key.txt"
     private val filepath = "identify_key"
@@ -28,14 +26,12 @@ class Database (context: Context) {
     private var myKey: Int? = 0
     private var docId: String? = null
 
-    fun isExist() {
-        if (File(directory, filename).exists()) {
-            Log.v(TAG, "File is exists")
-            readMyKey()
-        } else {
+    fun isKeyExist() : Boolean {
+        if (!File(directory, filename).exists()) {
             Log.v(TAG, "File is not exists")
             createMyKey()
         }
+        return true
     }
 
     private fun deleteDirectory() {
@@ -70,12 +66,11 @@ class Database (context: Context) {
             }
     }
 
-    private fun readMyKey() {
+    fun getMyKey() : Int {
         myInternalFile = File(directory, filename)
         myKey = myInternalFile!!.readText().toInt()
         Log.v(TAG, "My key: $myKey")
-        updateData()
-
+        return myKey!!
     }
 
     private fun initData(newKey: Int) {
@@ -95,25 +90,40 @@ class Database (context: Context) {
                 Log.v(TAG,"Init data successful")
             }
     }
-
-    private fun updateData(){
-        db.collection("Week").whereEqualTo("key", myKey)
+    fun updateData(key : Int ,dayName: String,step: Int){
+        db.collection("Week").whereEqualTo("key", key)
             .get().addOnSuccessListener {
                 if (it.documents.isNotEmpty()) {
                     docId = it.documents[0].id
                     Log.v(TAG, "DocId: ${it.documents[0].id}")
+
+                    val oldWeek = it.toObjects<Week>()[0]
+                    when (dayName){
+                        "Monday"->{
+                            oldWeek.mon = step
+                        }
+                        "Tuesday"->{
+                            oldWeek.tue = step
+                        }
+                        "Wednesday"->{
+                            oldWeek.wed = step
+                        }
+                        "Thursday"->{
+                            oldWeek.thu = step
+                        }
+                        "Friday"->{
+                            oldWeek.fri = step
+                        }
+                        "Saturday"->{
+                            oldWeek.sat = step
+                        }
+                        "Sunday"->{
+                            oldWeek.sun = step
+                        }
+                    }
                     db.collection("Week").document(docId!!).delete()
                     db.collection("Week").add(
-                        Week(
-                            myKey!!,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0
-                        )
+                        oldWeek
                     )
                         .addOnSuccessListener {
                             Log.v(TAG, "Update data successful")
