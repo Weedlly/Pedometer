@@ -27,6 +27,7 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.firestore.ktx.toObjects
+import kotlinx.coroutines.*
 import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
@@ -46,9 +47,9 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     companion object {
         private const val TAG = "CountStep"
         private var maxStep = 1000f
-        private const val MAX_X_VALUE = 7
-        private val MAX_Y_VALUE = maxStep
-        private val MIN_Y_VALUE = maxStep / 10
+//        private const val MAX_X_VALUE = 7
+//        private val MAX_Y_VALUE = maxStep
+//        private val MIN_Y_VALUE = maxStep / 10
         private val X_TITLE : Array<String> = arrayOf("SUN","MON","TUE","WED","THU","FRI","SAT")
     }
 
@@ -67,9 +68,10 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         bottomNavigationHandle()
 
         // Get My database Key
-        if (Database(baseContext).isKeyExist()) {
-            myKey = Database(baseContext).getMyKey()
-        }
+        Database(baseContext).isKeyExist()
+//        myKey = Database(baseContext).getMyKey()
+        myKey = 8733
+        Log.v(TAG,"Get key success: $myKey")
 
         //Counter monitor
         loadTime()
@@ -99,7 +101,6 @@ class CountStep : AppCompatActivity(), SensorEventListener {
                     startActivity(Intent(this,GpsMap::class.java))
                 }
 //                R.id.achieve-> {
-//
 //                    binding!!.bottomNavigation.menu[1].isCheckable = true
 //                }
             }
@@ -147,6 +148,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
     override fun onPause() {
         super.onPause()
+        saveData()
         Database(baseContext).updateData(myKey!!,myToday!!,totalStep.toInt())
         Log.v(TAG,"Activity on pause, data updating!!!")
     }
@@ -215,23 +217,20 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         else {
             // Reset data
             Log.v(TAG, "Change to new day is: $today")
-            databaseUpdate(today!!,0f,0f)
+            Database(baseContext).updateData(myKey!!,today!!,totalStep.toInt())
+            previousTotalSteps = 0f
             initData(0f)
         }
         myToday = today
     }
+
     private fun loadData(){
         val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
         val saveNumber = sharedPreferences.getFloat("previousTotalSteps",0f)
         Log.v(TAG,"$saveNumber")
         previousTotalSteps = saveNumber
     }
-    private fun databaseUpdate(today : String,totalSteps : Float, previousStep : Float){
-        Database(baseContext).updateData(myKey!!,today,totalSteps.toInt())
-        totalStep = totalSteps
-        previousTotalSteps = previousStep
 
-    }
     private fun loadTime(){
         val calendarInstance = Calendar.getInstance()
         val day = calendarInstance.get(Calendar.DAY_OF_MONTH)
@@ -290,13 +289,13 @@ class CountStep : AppCompatActivity(), SensorEventListener {
                     val week = it.toObjects<Week>()[0]
 
                     var i = 0f
-                    values.add(BarEntry(i, week.mon!!.toFloat()))
+                    values.add(BarEntry(i++,week.sun!!.toFloat()))
+                    values.add(BarEntry(i++,week.mon!!.toFloat()))
                     values.add(BarEntry(i++,week.tue!!.toFloat()))
                     values.add(BarEntry(i++,week.wed!!.toFloat()))
                     values.add(BarEntry(i++,week.thu!!.toFloat()))
                     values.add(BarEntry(i++,week.fri!!.toFloat()))
-                    values.add(BarEntry(i++,week.sat!!.toFloat()))
-                    values.add(BarEntry(i++,week.sun!!.toFloat()))
+                    values.add(BarEntry(i,week.sat!!.toFloat()))
                     val set1 = BarDataSet(values,null)
 
                     set1.color = ContextCompat.getColor(baseContext,R.color.yellow)

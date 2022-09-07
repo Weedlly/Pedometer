@@ -7,6 +7,7 @@ import com.example.pedometer.model.countstep.Week
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObjects
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.*
 import java.io.File
 import kotlin.random.Random
 val db = Firebase.firestore
@@ -44,7 +45,6 @@ class Database (context: Context) {
         myInternalFile = File(directory, filename)
 
         var isExistInFirestore = true
-
         db.collection("Week")
             .get().addOnSuccessListener {
                 if (it.documents.isNotEmpty()) {
@@ -63,7 +63,8 @@ class Database (context: Context) {
                     myInternalFile!!.writeText(key.toString())
                     initData(key)
                 }
-            }
+        }
+
     }
 
     fun getMyKey() : Int {
