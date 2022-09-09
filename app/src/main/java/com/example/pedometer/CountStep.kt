@@ -13,7 +13,7 @@ import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.get
-import com.example.pedometer.database.Database
+import com.example.pedometer.database.DatabaseAPI
 import com.example.pedometer.database.db
 import com.example.pedometer.databinding.ActivityCountStepBinding
 import com.example.pedometer.model.countstep.Week
@@ -27,7 +27,6 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.firestore.ktx.toObjects
-import kotlinx.coroutines.*
 import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
@@ -40,20 +39,18 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private var running = false
     private var totalStep : Float = 0f
     private var previousTotalSteps = 0f
-    private var myKey : Int? = null
     private var myToday : String? = null
 
     //  Static data
     companion object {
         private const val TAG = "CountStep"
         private var maxStep = 1000f
-//        private const val MAX_X_VALUE = 7
-//        private val MAX_Y_VALUE = maxStep
-//        private val MIN_Y_VALUE = maxStep / 10
         private val X_TITLE : Array<String> = arrayOf("SUN","MON","TUE","WED","THU","FRI","SAT")
     }
 
     private var barChart : BarChart? = null
+    private var database : DatabaseAPI? = null
+    private var deviceId : String? = null
 
     private var binding : ActivityCountStepBinding? = null
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,10 +65,9 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         bottomNavigationHandle()
 
         // Get My database Key
-        Database(baseContext).isKeyExist()
-//        myKey = Database(baseContext).getMyKey()
-        myKey = 8733
-        Log.v(TAG,"Get key success: $myKey")
+        database = DatabaseAPI(baseContext)
+        deviceId = database!!.deviceId
+        Log.v(TAG,"Get key success: $deviceId")
 
         //Counter monitor
         loadTime()
@@ -79,13 +75,14 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         resetStep()
         checkNewDay()
 
-        //init data to test
-        initData(500f)
-
+//        initData(0f)
         //Chart visualise
         barChart = binding!!.weeklyBarChartBc
 
         createChartData()
+
+        //init data to test
+//        initData(500f)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
@@ -100,9 +97,9 @@ class CountStep : AppCompatActivity(), SensorEventListener {
                 R.id.gps_training-> {
                     startActivity(Intent(this,GpsMap::class.java))
                 }
-//                R.id.achieve-> {
-//                    binding!!.bottomNavigation.menu[1].isCheckable = true
-//                }
+                R.id.target-> {
+                    startActivity(Intent(this,UserSetup::class.java))
+                }
             }
             true
         }
@@ -149,7 +146,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     override fun onPause() {
         super.onPause()
         saveData()
-        Database(baseContext).updateData(myKey!!,myToday!!,totalStep.toInt())
+        database!!.updateDataSpecifyDay(myToday!!,totalStep.toInt())
         Log.v(TAG,"Activity on pause, data updating!!!")
     }
 
@@ -166,7 +163,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
             binding!!.progressCircular.apply {
                 setProgressWithAnimation(currentSteps.toFloat())
             }
-
+            Log.v(TAG,"Counting!!!")
             binding!!.distanceContentTv.text = baseContext.resources.getString(
                 R.string.distances,
                 FOOT_TO_METER * currentSteps
@@ -217,7 +214,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         else {
             // Reset data
             Log.v(TAG, "Change to new day is: $today")
-            Database(baseContext).updateData(myKey!!,today!!,totalStep.toInt())
+            database!!.updateDataSpecifyDay(today!!,totalStep.toInt())
             previousTotalSteps = 0f
             initData(0f)
         }
@@ -283,12 +280,16 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
     private fun createChartData() {
         val values = arrayListOf<BarEntry>()
-        db.collection("Week").whereEqualTo("key", myKey)
+        db.collection("Week").whereEqualTo("deviceId",deviceId)
             .get().addOnSuccessListener {
                 if (it.documents.isNotEmpty()) {
                     val week = it.toObjects<Week>()[0]
 
                     var i = 0f
+//                    maxStep = week.stepPerDay!!.toFloat()
+                    maxStep = 1000f
+                    Log.v(TAG,"Get data from Firestore")
+                    binding!!.totalMaxStepTv.text = maxStep.toInt().toString()
                     values.add(BarEntry(i++,week.sun!!.toFloat()))
                     values.add(BarEntry(i++,week.mon!!.toFloat()))
                     values.add(BarEntry(i++,week.tue!!.toFloat()))
@@ -305,6 +306,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
                     dataSets.add(set1)
                     configureChartAppearance()
                     prepareChartData(BarData(dataSets))
+                    Log.v(TAG,"Implement chart")
                 }
             }
     }

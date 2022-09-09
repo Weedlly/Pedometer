@@ -22,6 +22,7 @@
     <string name="pause_button">PAUSE</string>
     <string name="continue_button">CONTINUE</string>
     <string name="duration">%d:%d:%d</string>
+    <string name="target_title">YOUR TARGET</string>
 
 
 </resources>

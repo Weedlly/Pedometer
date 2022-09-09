@@ -4,6 +4,117 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".UserSetup">
+    tools:context=".UserSetup"
+    >
+    <androidx.constraintlayout.widget.ConstraintLayout
+    android:layout_width="match_parent"
+    android:layout_height="680dp"
+    app:layout_constraintTop_toTopOf="parent"
+    android:background="@mipmap/_0756">
+
+    <TextView
+        android:id="@+id/totalMaxStep_tv"
+        android:layout_width="100dp"
+        android:layout_height="40dp"
+        android:text="Step:"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+
+        app:layout_constraintHorizontal_bias="0.151"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.16" />
+
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/totalMaxStep_ev"
+        android:layout_width="200dp"
+        android:layout_height="40dp"
+        app:layout_constraintTop_toTopOf="@id/totalMaxStep_tv"
+        app:layout_constraintLeft_toRightOf="@id/totalMaxStep_tv"
+        app:layout_constraintHorizontal_bias="0.225"
+        app:layout_constraintVertical_bias="0.24"
+
+        android:inputType="number"
+        android:hint="Your target step per day"
+        android:textColorHint="@color/yellow"
+        android:textAlignment="center"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        />
+
+    <TextView
+        android:id="@+id/or_tv"
+        android:layout_width="100dp"
+        android:layout_height="40dp"
+        app:layout_constraintRight_toRightOf="@id/totalMaxStep_tv"
+        app:layout_constraintTop_toBottomOf="@id/totalMaxStep_tv"
+
+        android:text="OR"
+
+        android:textAlignment="center"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        />
+
+    <TextView
+        android:id="@+id/totalCalories_tv"
+        android:layout_width="100dp"
+        android:layout_height="40dp"
+        app:layout_constraintTop_toBottomOf="@id/or_tv"
+        app:layout_constraintRight_toRightOf="@id/totalMaxStep_tv"
+        android:text="Calories:"
+        android:textAlignment="center"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"/>
+
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/totalCalories_ev"
+        android:layout_width="200dp"
+        android:layout_height="40dp"
+        app:layout_constraintTop_toBottomOf="@id/or_tv"
+        app:layout_constraintLeft_toRightOf="@id/totalCalories_tv"
+        android:hint="Your target calories per day"
+        android:textColorHint="@color/yellow"
+        android:inputType="number"
+        android:textAlignment="center"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        />
+
+    <Button
+        style="@style/MaterialAlertDialog.Material3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="44dp"
+        android:backgroundTint="@color/yellow"
+        android:text="GO"
+        android:textAlignment="center"
+        android:textColor="@color/blue_gray"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/totalCalories_ev" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom"
+        app:menu="@menu/bottom_navigation"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:background="@color/blue_gray"
+        app:itemRippleColor="@color/yellow"
+        />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

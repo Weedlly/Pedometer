@@ -8,6 +8,7 @@ import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -171,10 +172,9 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 R.id.home-> {
                     startActivity(Intent(this,CountStep::class.java))
                 }
-//                R.id.achieve-> {
-//
-//                    binding!!.bottomNavigation.menu[1].isCheckable = true
-//                }
+                R.id.target-> {
+                    startActivity(Intent(this,UserSetup::class.java))
+                }
             }
             true
         }
@@ -390,21 +390,21 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         updateLocationUI()
     }
     private fun setupTitle(){
-        binding.distanceTv.titleTv.text = getString(R.string.distance_title)
-        binding.distanceTv.contentTv.text = "0"
-        binding.durationTv.titleTv.text = getString(R.string.duration_title)
-        binding.durationTv.contentTv.text = "0"
-        binding.caloriesTv.titleTv.text = getString(R.string.calorie_title)
-        binding.caloriesTv.contentTv.text = "0"
+        binding.distanceTv.findViewById<TextView>(R.id.title_tv).text = getString(R.string.distance_title)
+        binding.distanceTv.findViewById<TextView>(R.id.content_tv).text  = "0"
+        binding.durationTv.findViewById<TextView>(R.id.title_tv).text  = getString(R.string.duration_title)
+        binding.durationTv.findViewById<TextView>(R.id.content_tv).text  = "0"
+        binding.caloriesTv.findViewById<TextView>(R.id.title_tv).text  = getString(R.string.calorie_title)
+        binding.caloriesTv.findViewById<TextView>(R.id.content_tv).text  = "0"
     }
     private fun updateTravelInfo(distance : Double, duration : Double){
         val kilometer = distance / 1000
         val hours = (duration / 3600).toInt()
         val minus = ((duration - hours * 3600) / 60).toInt()
         val second = (duration - hours * 3600 - minus * 60).toInt()
-        binding.distanceTv.contentTv.text = baseContext.resources.getString(R.string.distances,kilometer)
-        binding.caloriesTv.contentTv.text = baseContext.resources.getString(R.string.calories,kilometer * KILOMETER_TO_CALORIE)
-        binding.durationTv.contentTv.text = baseContext.resources.getString(R.string.duration,
+        binding.distanceTv.findViewById<TextView>(R.id.content_tv).text  = baseContext.resources.getString(R.string.distances,kilometer)
+        binding.caloriesTv.findViewById<TextView>(R.id.content_tv).text  = baseContext.resources.getString(R.string.calories,kilometer * KILOMETER_TO_CALORIE)
+        binding.durationTv.findViewById<TextView>(R.id.content_tv).text  = baseContext.resources.getString(R.string.duration,
             hours,
             minus,
             second)

@@ -1,7 +1,8 @@
 package com.example.pedometer.model.countstep
 
 data class Week(
-    var key: Int? = 0,
+    var deviceId: String? = "",
+    var stepPerDay: Int? = 0,
     var mon: Int? = 0,
     var tue: Int? = 0,
     var wed: Int? = 0,
