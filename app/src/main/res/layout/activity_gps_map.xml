@@ -41,19 +41,20 @@
             android:baselineAligned="false"
             android:background="@color/white">
             <include
-                android:id="@+id/distance_tv"
+                android:id="@+id/distance_ctv"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                layout="@layout/textview_custom"
+                android:visibility="visible"/>
+            <include
+                android:id="@+id/calories_ctv"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 layout="@layout/textview_custom"/>
             <include
-                android:id="@+id/calories_tv"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                layout="@layout/textview_custom"/>
-            <include
-                android:id="@+id/duration_tv"
+                android:id="@+id/duration_ctv"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"

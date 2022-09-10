@@ -1,5 +1,6 @@
 package com.example.pedometer
 
+
 import android.content.Context
 import android.content.Intent
 import android.hardware.Sensor
@@ -14,7 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import com.example.pedometer.database.DatabaseAPI
-import com.example.pedometer.database.db
+import com.example.pedometer.databinding.AbsLayoutBinding
 import com.example.pedometer.databinding.ActivityCountStepBinding
 import com.example.pedometer.model.countstep.Week
 import com.github.mikephil.charting.charts.BarChart
@@ -26,7 +27,6 @@ import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.firebase.firestore.ktx.toObjects
 import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
@@ -52,15 +52,25 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private var database : DatabaseAPI? = null
     private var deviceId : String? = null
 
+    private var myWeek : Week? = null
+
     private var binding : ActivityCountStepBinding? = null
+    private var absBinding : AbsLayoutBinding? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Toast.makeText(this, "Create!!!", Toast.LENGTH_SHORT).show()
         binding = ActivityCountStepBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
+
+        //Setup Activity Custom action bar
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
+
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
-        supportActionBar!!.setCustomView(R.layout.abs_layout)
-        supportActionBar!!.title = "Pedometer"
+        absBinding = AbsLayoutBinding.inflate(layoutInflater)
+        supportActionBar!!.customView = absBinding!!.root
+        absBinding!!.activityTitleTv.text = "Count Step"
+        absBinding!!.activityTitleTv.textSize = 23f
         //Bottom navigation
         bottomNavigationHandle()
 
@@ -68,6 +78,10 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         database = DatabaseAPI(baseContext)
         deviceId = database!!.deviceId
         Log.v(TAG,"Get key success: $deviceId")
+
+        // Take data week
+        myWeek = intent.getSerializableExtra("myWeek") as Week
+
 
         //Counter monitor
         loadTime()
@@ -95,10 +109,14 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         bottomNavigationView.setOnItemSelectedListener {
             when(it.itemId){
                 R.id.gps_training-> {
-                    startActivity(Intent(this,GpsMap::class.java))
+                    var gpsMapIntent = Intent(this, GpsMap::class.java)
+                    gpsMapIntent.putExtra("myWeek", myWeek)
+                    startActivity(gpsMapIntent)
                 }
                 R.id.target-> {
-                    startActivity(Intent(this,UserSetup::class.java))
+                    val intentUserSetup = Intent(this,UserSetup::class.java)
+                    intentUserSetup.putExtra("isRegister",false)
+                    startActivity(intentUserSetup)
                 }
             }
             true
@@ -132,6 +150,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
     override fun onResume() {
         super.onResume()
+        Toast.makeText(this, "Resume!!!", Toast.LENGTH_SHORT).show()
         running = true
         val stepSensor : Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         if (stepSensor == null){
@@ -146,32 +165,36 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     override fun onPause() {
         super.onPause()
         saveData()
+        Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
         database!!.updateDataSpecifyDay(myToday!!,totalStep.toInt())
         Log.v(TAG,"Activity on pause, data updating!!!")
     }
 
     override fun onSensorChanged(p0: SensorEvent?) {
-        if (running) {
-            totalStep = p0!!.values[0]
-            val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
-            binding!!.stepsTakenTv.text = ("$currentSteps")
+        if (p0!!.sensor.type == Sensor.TYPE_STEP_COUNTER) {
+            if (running) {
+                totalStep = p0!!.values[0]
+                val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
+                binding!!.stepsTakenTv.text = ("$currentSteps")
 
-            val percent = (currentSteps * 100 / maxStep).roundToInt()
-            binding!!.percentTv.text =
-                baseContext.resources.getString(R.string.percent_aim, percent)
+                val percent = (currentSteps * 100 / maxStep).roundToInt()
+                binding!!.percentTv.text =
+                    baseContext.resources.getString(R.string.percent_aim, percent)
 
-            binding!!.progressCircular.apply {
-                setProgressWithAnimation(currentSteps.toFloat())
+                binding!!.progressCircular.apply {
+                    setProgressWithAnimation(currentSteps.toFloat())
+                }
+                Toast.makeText(this, "Counting!!!", Toast.LENGTH_SHORT).show()
+                Log.v(TAG, "Counting!!!")
+                binding!!.distanceContentTv.text = baseContext.resources.getString(
+                    R.string.distances,
+                    FOOT_TO_METER * currentSteps
+                )
+                binding!!.caloriesContentTv.text = baseContext.resources.getString(
+                    R.string.calories,
+                    FOOT_TO_CALORIE * currentSteps
+                )
             }
-            Log.v(TAG,"Counting!!!")
-            binding!!.distanceContentTv.text = baseContext.resources.getString(
-                R.string.distances,
-                FOOT_TO_METER * currentSteps
-            )
-            binding!!.caloriesContentTv.text = baseContext.resources.getString (
-                R.string.calories,
-                FOOT_TO_CALORIE * currentSteps
-            )
         }
     }
 
@@ -194,12 +217,15 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
     private fun saveData(){
         val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
+        // Save step
         val editor = sharedPreferences.edit()
         editor.putFloat("previousTotalSteps",previousTotalSteps)
 
+        // Save day
         val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
         editor.putString("Today",today)
         Log.v(TAG,"Today save is: $today")
+
         editor.apply()
 
     }
@@ -280,35 +306,35 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
     private fun createChartData() {
         val values = arrayListOf<BarEntry>()
-        db.collection("Week").whereEqualTo("deviceId",deviceId)
-            .get().addOnSuccessListener {
-                if (it.documents.isNotEmpty()) {
-                    val week = it.toObjects<Week>()[0]
+//        db.collection("Week").whereEqualTo("deviceId",deviceId)
+//            .get().addOnSuccessListener {
+//                if (it.documents.isNotEmpty()) {
 
-                    var i = 0f
-//                    maxStep = week.stepPerDay!!.toFloat()
-                    maxStep = 1000f
-                    Log.v(TAG,"Get data from Firestore")
-                    binding!!.totalMaxStepTv.text = maxStep.toInt().toString()
-                    values.add(BarEntry(i++,week.sun!!.toFloat()))
-                    values.add(BarEntry(i++,week.mon!!.toFloat()))
-                    values.add(BarEntry(i++,week.tue!!.toFloat()))
-                    values.add(BarEntry(i++,week.wed!!.toFloat()))
-                    values.add(BarEntry(i++,week.thu!!.toFloat()))
-                    values.add(BarEntry(i++,week.fri!!.toFloat()))
-                    values.add(BarEntry(i,week.sat!!.toFloat()))
-                    val set1 = BarDataSet(values,null)
 
-                    set1.color = ContextCompat.getColor(baseContext,R.color.yellow)
-                    set1.valueTextColor = ContextCompat.getColor(baseContext,R.color.white)
 
-                    val dataSets = arrayListOf<IBarDataSet>()
-                    dataSets.add(set1)
-                    configureChartAppearance()
-                    prepareChartData(BarData(dataSets))
-                    Log.v(TAG,"Implement chart")
-                }
-            }
+//                }
+//            }
+        var i = 0f
+        maxStep = myWeek!!.stepPerDay!!.toFloat()
+        Log.v(TAG,"Get data from Firestore")
+        binding!!.totalMaxStepTv.text = maxStep.toInt().toString()
+        values.add(BarEntry(i++,myWeek!!.sun!!.toFloat()))
+        values.add(BarEntry(i++,myWeek!!.mon!!.toFloat()))
+        values.add(BarEntry(i++,myWeek!!.tue!!.toFloat()))
+        values.add(BarEntry(i++,myWeek!!.wed!!.toFloat()))
+        values.add(BarEntry(i++,myWeek!!.thu!!.toFloat()))
+        values.add(BarEntry(i++,myWeek!!.fri!!.toFloat()))
+        values.add(BarEntry(i,myWeek!!.sat!!.toFloat()))
+        val set1 = BarDataSet(values,null)
+
+        set1.color = ContextCompat.getColor(baseContext,R.color.yellow)
+        set1.valueTextColor = ContextCompat.getColor(baseContext,R.color.white)
+
+        val dataSets = arrayListOf<IBarDataSet>()
+        dataSets.add(set1)
+        configureChartAppearance()
+        prepareChartData(BarData(dataSets))
+        Log.v(TAG,"Implement chart")
     }
 
     private fun prepareChartData(barData : BarData){

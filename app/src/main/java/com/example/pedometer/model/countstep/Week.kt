@@ -1,6 +1,8 @@
 package com.example.pedometer.model.countstep
 
-data class Week(
+import java.io.Serializable
+
+data class Week (
     var deviceId: String? = "",
     var stepPerDay: Int? = 0,
     var mon: Int? = 0,
@@ -10,4 +12,4 @@ data class Week(
     var fri: Int? = 0,
     var sat: Int? = 0,
     var sun: Int? = 0,
-)
+) : Serializable

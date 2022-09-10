@@ -1,52 +1,89 @@
 package com.example.pedometer
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
+import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.get
 import com.example.pedometer.database.DatabaseAPI
 import com.example.pedometer.database.db
+import com.example.pedometer.databinding.AbsLayoutBinding
 import com.example.pedometer.databinding.ActivityUserSetupBinding
+import com.example.pedometer.model.countstep.Week
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.firebase.firestore.ktx.toObjects
+import java.util.*
 
 class UserSetup : AppCompatActivity() {
     private var database : DatabaseAPI? = null
     private var deviceId : String? = null
     private var binding : ActivityUserSetupBinding? = null
+    private var absBinding : AbsLayoutBinding? = null
 
     private var maxSteps: Float? = 0f
     private var calories: Float? = 0f
-
+    private var isRegister : Boolean = false
+    private var myWeek : Week? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityUserSetupBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
 
+
+        //Setup Activity Custom action bar
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
+
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
-        supportActionBar!!.setCustomView(R.layout.abs_layout)
-        supportActionBar!!.title = "YOUR TARGET"
+        absBinding = AbsLayoutBinding.inflate(layoutInflater)
+        supportActionBar!!.customView = absBinding!!.root
+        absBinding!!.activityTitleTv.text = "Set Goal"
+
+
+
         //Bottom navigation
         bottomNavigationHandle()
 
         //Setup database
         database = DatabaseAPI(baseContext)
         deviceId = database!!.deviceId
-
-        isTargetFill()
         Log.v("User","Get key success: $deviceId")
 
+        isRegister = intent.getBooleanExtra("isRegister",false)
+        isTargetFill()
+
+        eventHandle()
+    }
+    private fun eventHandle(){
+        binding!!.goBt.setOnClickListener{
+            if (!binding!!.totalMaxStepEv.text.isNullOrBlank() && !binding!!.totalCaloriesEv.text.isNullOrBlank()){
+                database!!.updateTargetStep(maxSteps!!.toInt())
+                var countStepIntent = Intent(this,CountStep::class.java)
+                countStepIntent.putExtra("myWeek",myWeek)
+                startActivity(countStepIntent)
+            }
+            else{
+                Toast.makeText(this,"You need to fill Step or Calories target to starting",Toast.LENGTH_SHORT).show()
+            }
+        }
+
         binding!!.totalMaxStepEv.setOnClickListener {
-            maxSteps = binding!!.totalMaxStepEv.text.toString().toFloat()
-            calories = (maxSteps!!.toFloat() * FOOT_TO_CALORIE).toFloat()
-            binding!!.totalCaloriesEv.setText(calories!!.toInt().toString())
+            if (!binding!!.totalMaxStepEv.text.isNullOrBlank()) {
+                maxSteps = binding!!.totalMaxStepEv.text.toString().toFloat()
+                calories = (maxSteps!!.toFloat() * FOOT_TO_CALORIE).toFloat()
+                binding!!.totalCaloriesEv.setText(calories!!.toInt().toString())
+            }
         }
         binding!!.totalCaloriesEv.setOnClickListener {
-            calories = binding!!.totalCaloriesEv.text.toString().toFloat()
-            maxSteps = (calories!!.toFloat() / FOOT_TO_CALORIE ).toFloat()
-            binding!!.totalMaxStepEv.setText(maxSteps!!.toInt().toString())
+            if (!binding!!.totalCaloriesEv.text.isNullOrBlank()) {
+                calories = binding!!.totalCaloriesEv.text.toString().toFloat()
+                maxSteps = (calories!!.toFloat() / FOOT_TO_CALORIE).toFloat()
+                binding!!.totalMaxStepEv.setText(maxSteps!!.toInt().toString())
+            }
         }
     }
     private fun isTargetFill(){
@@ -54,6 +91,14 @@ class UserSetup : AppCompatActivity() {
             .get().addOnSuccessListener {
                 if (it.documents.isEmpty()){
                     database!!.initData(0)
+                }
+                else{
+                    myWeek = it.toObjects<Week>()[0]
+                    if(isRegister) {
+                        var countStepIntent = Intent(this, CountStep::class.java)
+                        countStepIntent.putExtra("myWeek", myWeek)
+                        startActivity(countStepIntent)
+                    }
                 }
             }
     }
@@ -64,10 +109,14 @@ class UserSetup : AppCompatActivity() {
         bottomNavigationView.setOnItemSelectedListener {
             when(it.itemId){
                 R.id.gps_training-> {
-                    startActivity(Intent(this,GpsMap::class.java))
+                    var gpsMapIntent = Intent(this, GpsMap::class.java)
+                    gpsMapIntent.putExtra("myWeek", myWeek)
+                    startActivity(gpsMapIntent)
                 }
                 R.id.home-> {
-                    startActivity(Intent(this,CountStep::class.java))
+                    var countStepIntent = Intent(this, CountStep::class.java)
+                    countStepIntent.putExtra("myWeek", myWeek)
+                    startActivity(countStepIntent)
                 }
             }
             true

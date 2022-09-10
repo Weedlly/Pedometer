@@ -8,15 +8,17 @@ import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
-import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import androidx.core.view.isVisible
 import com.example.pedometer.BuildConfig.MAPS_API_KEY
+import com.example.pedometer.databinding.AbsLayoutBinding
 import com.example.pedometer.databinding.ActivityGpsMapBinding
+import com.example.pedometer.model.countstep.Week
 import com.example.pedometer.model.gps.Route
 import com.example.pedometer.network.ApiInterface
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -40,6 +42,7 @@ const val KILOMETER_TO_CALORIE = 84
 class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityGpsMapBinding
+    private var absBinding : AbsLayoutBinding? = null
 
     private var markerPoints = ArrayList<LatLng>()
     private var mGoogleMap: GoogleMap? = null
@@ -62,14 +65,31 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     private var isUpdateLocation = false
 
+    // Data
+    private var myWeek : Week? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityGpsMapBinding.inflate(layoutInflater)
+
         setContentView(binding.root)
+
+        //Setup Activity Custom action bar
+        supportActionBar!!.setDisplayHomeAsUpEnabled(true)
+
+        supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
+        absBinding = AbsLayoutBinding.inflate(layoutInflater)
+        supportActionBar!!.customView = absBinding!!.root
+        absBinding!!.activityTitleTv.text = "GPS Training"
+        absBinding!!.activityTitleTv.textSize = 21f
+
         //Set up title and init value
         setupTitle()
         updateTravelInfo(0.0,0.0)
+
+        // Take data week
+        myWeek = intent.getSerializableExtra("myWeek") as Week
 
         // Update continuous location
         CoroutineScope(Dispatchers.IO).launch{
@@ -170,10 +190,14 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         bottomNavigationView.setOnItemSelectedListener {
             when(it.itemId){
                 R.id.home-> {
-                    startActivity(Intent(this,CountStep::class.java))
+                    var countStepIntent = Intent(this, CountStep::class.java)
+                    countStepIntent.putExtra("myWeek", myWeek)
+                    startActivity(countStepIntent)
                 }
                 R.id.target-> {
-                    startActivity(Intent(this,UserSetup::class.java))
+                    val intentUserSetup = Intent(this,UserSetup::class.java)
+                    intentUserSetup.putExtra("isRegister",false)
+                    startActivity(intentUserSetup)
                 }
             }
             true
@@ -389,22 +413,23 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         }
         updateLocationUI()
     }
+
     private fun setupTitle(){
-        binding.distanceTv.findViewById<TextView>(R.id.title_tv).text = getString(R.string.distance_title)
-        binding.distanceTv.findViewById<TextView>(R.id.content_tv).text  = "0"
-        binding.durationTv.findViewById<TextView>(R.id.title_tv).text  = getString(R.string.duration_title)
-        binding.durationTv.findViewById<TextView>(R.id.content_tv).text  = "0"
-        binding.caloriesTv.findViewById<TextView>(R.id.title_tv).text  = getString(R.string.calorie_title)
-        binding.caloriesTv.findViewById<TextView>(R.id.content_tv).text  = "0"
+        binding.distanceCtv.titleTv.text = getString(R.string.distance_title)
+        binding.distanceCtv.contentTv.text = "0"
+        binding.durationCtv.titleTv.text = getString(R.string.duration_title)
+        binding.durationCtv.contentTv.text = "0"
+        binding.caloriesCtv.titleTv.text = getString(R.string.calorie_title)
+        binding.caloriesCtv.contentTv.text = "0"
     }
     private fun updateTravelInfo(distance : Double, duration : Double){
         val kilometer = distance / 1000
         val hours = (duration / 3600).toInt()
         val minus = ((duration - hours * 3600) / 60).toInt()
         val second = (duration - hours * 3600 - minus * 60).toInt()
-        binding.distanceTv.findViewById<TextView>(R.id.content_tv).text  = baseContext.resources.getString(R.string.distances,kilometer)
-        binding.caloriesTv.findViewById<TextView>(R.id.content_tv).text  = baseContext.resources.getString(R.string.calories,kilometer * KILOMETER_TO_CALORIE)
-        binding.durationTv.findViewById<TextView>(R.id.content_tv).text  = baseContext.resources.getString(R.string.duration,
+        binding.distanceCtv.contentTv.text = baseContext.resources.getString(R.string.distances,kilometer)
+        binding.caloriesCtv.contentTv.text = baseContext.resources.getString(R.string.calories,kilometer * KILOMETER_TO_CALORIE)
+        binding.durationCtv.contentTv.text = baseContext.resources.getString(R.string.duration,
             hours,
             minus,
             second)
