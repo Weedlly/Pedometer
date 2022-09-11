@@ -12,7 +12,6 @@ val db = Firebase.firestore
 class DatabaseAPI (context: Context) {
     companion object {
         const val TAG = "Database"
-
     }
     var deviceId: String =  Settings.Secure.getString(
         context.contentResolver,

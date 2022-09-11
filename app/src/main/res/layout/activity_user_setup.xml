@@ -8,9 +8,7 @@
     android:background="@color/dark_green"
     android:orientation="vertical"
     android:weightSum="15">
-    <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="14"
@@ -21,105 +19,118 @@
         android:layout_height="680dp"
         app:layout_constraintTop_toTopOf="parent"
         android:background="@color/blue_gray">
-
-            <TextView
-                android:id="@+id/totalMaxStep_tv"
-                android:layout_width="100dp"
+            <LinearLayout
+                android:id="@+id/totalMaxStep_lt"
+                android:layout_width="300dp"
                 android:layout_height="40dp"
-                android:text="Step:"
-                android:textAlignment="center"
-                android:textColor="@color/white"
-                android:background="@drawable/fringe"
-
-                android:textSize="20sp"
-                android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintHorizontal_bias="0.151"
+                app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintRight_toRightOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.16" />
+                app:layout_constraintVertical_bias="0.162"
+                android:orientation="horizontal"
+                android:weightSum="1">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/totalMaxStep_ev"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.75"
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/totalMaxStep_ev"
-            android:layout_width="200dp"
-            android:layout_height="40dp"
-            app:layout_constraintTop_toTopOf="@id/totalMaxStep_tv"
-            app:layout_constraintLeft_toRightOf="@id/totalMaxStep_tv"
-            app:layout_constraintHorizontal_bias="0.225"
-            app:layout_constraintVertical_bias="0.24"
+                    android:hint="@string/hint_target_step_per_day"
+                    android:inputType="number"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    android:textColorHint="@color/yellow"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/step_unit_tv"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.25"
+                    android:paddingTop="5dp"
+                    android:text="@string/steps_unit"
+                    android:textAlignment="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    />
+            </LinearLayout>
 
-            android:inputType="number"
-            android:hint="Your target step per day"
-            android:textColorHint="@color/yellow"
-            android:textAlignment="center"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:layout_marginLeft="10dp"
-            />
-
-        <TextView
+            <TextView
             android:id="@+id/or_tv"
-            android:layout_width="100dp"
+            android:layout_width="300dp"
             android:layout_height="40dp"
-            app:layout_constraintRight_toRightOf="@id/totalMaxStep_tv"
-            app:layout_constraintTop_toBottomOf="@id/totalMaxStep_tv"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintTop_toBottomOf="@id/totalMaxStep_lt"
             android:layout_marginTop="20dp"
-            android:text="or"
-
+            android:text="@string/or"
             android:textAlignment="center"
-            android:textSize="15sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/white"
             />
+            <LinearLayout
+                android:layout_width="300dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="20dp"
+                app:layout_constraintTop_toBottomOf="@id/or_tv"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                android:orientation="horizontal"
+                android:weightSum="1">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/totalCalories_ev"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.75"
+                    android:hint="@string/hint_target_calories_per_day"
+                    android:textColorHint="@color/yellow"
+                    android:inputType="number"
+                    android:textAlignment="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
 
-        <TextView
-            android:id="@+id/totalCalories_tv"
-            android:layout_width="100dp"
-            android:layout_height="40dp"
-            app:layout_constraintTop_toBottomOf="@id/or_tv"
-            app:layout_constraintRight_toRightOf="@id/totalMaxStep_tv"
-            android:text="Calories:"
-            android:textAlignment="center"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-
-            android:background="@drawable/fringe"/>
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/totalCalories_ev"
-            android:layout_width="200dp"
-            android:layout_height="40dp"
-            app:layout_constraintTop_toBottomOf="@id/or_tv"
-            app:layout_constraintLeft_toRightOf="@id/totalCalories_tv"
-            android:hint="Your target calories per day"
-            android:textColorHint="@color/yellow"
-            android:inputType="number"
-            android:textAlignment="center"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:layout_marginLeft="10dp"
-            />
+                    />
+                <TextView
+                    android:id="@+id/calories_unit_tv"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.25"
+                    android:text="@string/calories_unit"
+                    android:paddingTop="5dp"
+                    android:textAlignment="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    />
+            </LinearLayout>
 
         <Button
             android:id="@+id/go_bt"
             style="@style/MaterialAlertDialog.Material3"
-            android:layout_width="wrap_content"
+            android:layout_width="200dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="44dp"
+
             android:backgroundTint="@color/yellow"
-            android:text="GO"
+            android:text="@string/go"
             android:textAlignment="center"
             android:textColor="@color/blue_gray"
-            android:textSize="20sp"
+            android:textSize="40sp"
             android:textStyle="bold"
-            app:layout_constraintHorizontal_bias="0.498"
+            app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/totalCalories_ev" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.7"
+            />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
     <com.google.android.material.bottomnavigation.BottomNavigationView

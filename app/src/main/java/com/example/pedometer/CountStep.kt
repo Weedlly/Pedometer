@@ -40,11 +40,11 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private var totalStep : Float = 0f
     private var previousTotalSteps = 0f
     private var myToday : String? = null
+    private var maxStep :Float? = null
 
     //  Static data
     companion object {
         private const val TAG = "CountStep"
-        private var maxStep = 1000f
         private val X_TITLE : Array<String> = arrayOf("SUN","MON","TUE","WED","THU","FRI","SAT")
     }
 
@@ -69,7 +69,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         absBinding = AbsLayoutBinding.inflate(layoutInflater)
         supportActionBar!!.customView = absBinding!!.root
-        absBinding!!.activityTitleTv.text = "Count Step"
+        absBinding!!.activityTitleTv.text =  baseContext.resources.getString(R.string.count_step_activity_title)
         absBinding!!.activityTitleTv.textSize = 23f
         //Bottom navigation
         bottomNavigationHandle()
@@ -81,7 +81,8 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
         // Take data week
         myWeek = intent.getSerializableExtra("myWeek") as Week
-
+        maxStep = myWeek!!.stepPerDay!!.toFloat()
+        binding!!.progressCircular.progressMax = maxStep!!
 
         //Counter monitor
         loadTime()
@@ -89,7 +90,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         resetStep()
         checkNewDay()
 
-//        initData(0f)
+        initData(500f)
         //Chart visualise
         barChart = binding!!.weeklyBarChartBc
 
@@ -109,7 +110,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         bottomNavigationView.setOnItemSelectedListener {
             when(it.itemId){
                 R.id.gps_training-> {
-                    var gpsMapIntent = Intent(this, GpsMap::class.java)
+                    val gpsMapIntent = Intent(this, GpsMap::class.java)
                     gpsMapIntent.putExtra("myWeek", myWeek)
                     startActivity(gpsMapIntent)
                 }
@@ -130,7 +131,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         val currentSteps = countCurrentSteps()
         binding!!.stepsTakenTv.text = ("$currentSteps")
 
-        val percent = (currentSteps * 100 / maxStep).roundToInt()
+        val percent = (currentSteps * 100 / maxStep!!).roundToInt()
         binding!!.percentTv.text =
             baseContext.resources.getString(R.string.percent_aim, percent)
 
@@ -173,13 +174,13 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     override fun onSensorChanged(p0: SensorEvent?) {
         if (p0!!.sensor.type == Sensor.TYPE_STEP_COUNTER) {
             if (running) {
-                totalStep = p0!!.values[0]
+                totalStep = p0.values[0]
                 val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
                 binding!!.stepsTakenTv.text = ("$currentSteps")
-
-                val percent = (currentSteps * 100 / maxStep).roundToInt()
+                var percent = (currentSteps * 100 / maxStep!!)
+                if (percent.isNaN()) percent = 0f
                 binding!!.percentTv.text =
-                    baseContext.resources.getString(R.string.percent_aim, percent)
+                    baseContext.resources.getString(R.string.percent_aim,  percent.roundToInt())
 
                 binding!!.progressCircular.apply {
                     setProgressWithAnimation(currentSteps.toFloat())
@@ -317,7 +318,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         var i = 0f
         maxStep = myWeek!!.stepPerDay!!.toFloat()
         Log.v(TAG,"Get data from Firestore")
-        binding!!.totalMaxStepTv.text = maxStep.toInt().toString()
+        binding!!.totalMaxStepTv.text = maxStep!!.toInt().toString()
         values.add(BarEntry(i++,myWeek!!.sun!!.toFloat()))
         values.add(BarEntry(i++,myWeek!!.mon!!.toFloat()))
         values.add(BarEntry(i++,myWeek!!.tue!!.toFloat()))

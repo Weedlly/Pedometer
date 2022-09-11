@@ -81,7 +81,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         absBinding = AbsLayoutBinding.inflate(layoutInflater)
         supportActionBar!!.customView = absBinding!!.root
-        absBinding!!.activityTitleTv.text = "GPS Training"
+        absBinding!!.activityTitleTv.text = baseContext.resources.getString(R.string.title_activity_gps_map)
         absBinding!!.activityTitleTv.textSize = 21f
 
         //Set up title and init value
@@ -190,7 +190,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         bottomNavigationView.setOnItemSelectedListener {
             when(it.itemId){
                 R.id.home-> {
-                    var countStepIntent = Intent(this, CountStep::class.java)
+                    val countStepIntent = Intent(this, CountStep::class.java)
                     countStepIntent.putExtra("myWeek", myWeek)
                     startActivity(countStepIntent)
                 }

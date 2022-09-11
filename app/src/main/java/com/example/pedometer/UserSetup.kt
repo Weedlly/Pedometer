@@ -1,14 +1,11 @@
 package com.example.pedometer
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.Gravity
 import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.get
 import com.example.pedometer.database.DatabaseAPI
 import com.example.pedometer.database.db
@@ -17,7 +14,6 @@ import com.example.pedometer.databinding.ActivityUserSetupBinding
 import com.example.pedometer.model.countstep.Week
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.firestore.ktx.toObjects
-import java.util.*
 
 class UserSetup : AppCompatActivity() {
     private var database : DatabaseAPI? = null
@@ -41,7 +37,7 @@ class UserSetup : AppCompatActivity() {
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         absBinding = AbsLayoutBinding.inflate(layoutInflater)
         supportActionBar!!.customView = absBinding!!.root
-        absBinding!!.activityTitleTv.text = "Set Goal"
+        absBinding!!.activityTitleTv.text =  baseContext.resources.getString(R.string.user_setup_activity_title)
 
 
 
@@ -61,8 +57,8 @@ class UserSetup : AppCompatActivity() {
     private fun eventHandle(){
         binding!!.goBt.setOnClickListener{
             if (!binding!!.totalMaxStepEv.text.isNullOrBlank() && !binding!!.totalCaloriesEv.text.isNullOrBlank()){
-                database!!.updateTargetStep(maxSteps!!.toInt())
-                var countStepIntent = Intent(this,CountStep::class.java)
+                myWeek!!.stepPerDay = maxSteps!!.toInt()
+                val countStepIntent = Intent(this,CountStep::class.java)
                 countStepIntent.putExtra("myWeek",myWeek)
                 startActivity(countStepIntent)
             }
@@ -95,7 +91,7 @@ class UserSetup : AppCompatActivity() {
                 else{
                     myWeek = it.toObjects<Week>()[0]
                     if(isRegister) {
-                        var countStepIntent = Intent(this, CountStep::class.java)
+                        val countStepIntent = Intent(this, CountStep::class.java)
                         countStepIntent.putExtra("myWeek", myWeek)
                         startActivity(countStepIntent)
                     }
@@ -109,12 +105,12 @@ class UserSetup : AppCompatActivity() {
         bottomNavigationView.setOnItemSelectedListener {
             when(it.itemId){
                 R.id.gps_training-> {
-                    var gpsMapIntent = Intent(this, GpsMap::class.java)
+                    val gpsMapIntent = Intent(this, GpsMap::class.java)
                     gpsMapIntent.putExtra("myWeek", myWeek)
                     startActivity(gpsMapIntent)
                 }
                 R.id.home-> {
-                    var countStepIntent = Intent(this, CountStep::class.java)
+                    val countStepIntent = Intent(this, CountStep::class.java)
                     countStepIntent.putExtra("myWeek", myWeek)
                     startActivity(countStepIntent)
                 }

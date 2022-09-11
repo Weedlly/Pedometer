@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Pedometer</string>
     <!--    Count Step-->
+    <string name="count_step_activity_title">Count Step</string>
     <string name="aim_step">AIM: 1000</string>
     <string name="percent_aim">%1$d%%</string>
     <string name="month_and_day">%s %s</string>
@@ -8,10 +9,11 @@
     <string name="distances">%.3f</string>
     <string name="meter_tittle">METERS</string>
     <string name="calories_title">CALORIES</string>
-    <string name="title_activity_gps_map">Gps Training</string>
-    <string name="map_id">5618cd7b01db1e2e</string>
+
 
     <!--    Gps Trainning-->
+    <string name="title_activity_gps_map">Gps Training</string>
+    <string name="map_id">5618cd7b01db1e2e</string>
     <string name="distance_title">KILOMETERS</string>
     <string name="duration_title">TIME</string>
     <string name="calorie_title">CALORIE</string>
@@ -22,7 +24,15 @@
     <string name="pause_button">PAUSE</string>
     <string name="continue_button">CONTINUE</string>
     <string name="duration">%d:%d:%d</string>
-    <string name="target_title">YOUR TARGET</string>
+
+    <!-- User Goal -->
+    <string name="user_setup_activity_title">Set Goal</string>
+    <string name="hint_target_step_per_day">Target steps per day</string>
+    <string name="steps_unit">steps</string>
+    <string name="or">or</string>
+    <string name="hint_target_calories_per_day">Target calories per day</string>
+    <string name="calories_unit">calories</string>
+    <string name="go">Go</string>
 
 
 </resources>
