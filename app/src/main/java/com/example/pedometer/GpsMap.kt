@@ -2,12 +2,12 @@ package com.example.pedometer
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
-import android.view.Menu
 import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import androidx.core.view.isVisible
 import com.example.pedometer.BuildConfig.MAPS_API_KEY
+import com.example.pedometer.database.DatabaseAPI
 import com.example.pedometer.databinding.AbsLayoutBinding
 import com.example.pedometer.databinding.ActivityGpsMapBinding
 import com.example.pedometer.model.countstep.Week
@@ -35,6 +36,7 @@ import io.nlopez.smartlocation.SmartLocation
 import kotlinx.coroutines.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.*
 
 private const val baseUrl = "https://api.mapbox.com"
 
@@ -45,6 +47,8 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     private var absBinding : AbsLayoutBinding? = null
 
     private var markerPoints = ArrayList<LatLng>()
+    private var totalDistanceRunning :Float = 0f
+    private var lastDistance :Float? = -1f
     private var mGoogleMap: GoogleMap? = null
     private var cameraPosition: CameraPosition? = null
 
@@ -60,6 +64,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     // location retrieved by the Fused Location Provider.
 
     private var lastKnownLocation: Location? = null
+    private var desti: LatLng? = null
 
     private var isEnoughTwoPoint = false
 
@@ -82,7 +87,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         absBinding = AbsLayoutBinding.inflate(layoutInflater)
         supportActionBar!!.customView = absBinding!!.root
         absBinding!!.activityTitleTv.text = baseContext.resources.getString(R.string.title_activity_gps_map)
-        absBinding!!.activityTitleTv.textSize = 21f
+        absBinding!!.activityTitleTv.textSize = 19f
 
         //Set up title and init value
         setupTitle()
@@ -94,9 +99,13 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         // Update continuous location
         CoroutineScope(Dispatchers.IO).launch{
             while (true) {
-                delay(10000)
+                delay(5000)
                 SmartLocation.with(baseContext).location().start{
                     lastKnownLocation = it
+                    if (isUpdateLocation) {
+                        lastKnownLocation!!.latitude = desti!!.latitude
+                        lastKnownLocation!!.longitude = desti!!.longitude
+                    }
                     if (locationPermissionGranted && isUpdateLocation) {
                         updateTrainingRoute(LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude))
                         Log.v(TAG, "Update location: $lastKnownLocation")
@@ -212,7 +221,6 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             isEnoughTwoPoint = false
         }
 
-
         // Adding new item to the ArrayList
         markerPoints.add(it)
         // Creating MarkerOptions
@@ -237,11 +245,6 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             }
         }
 
-//            if (markerPoints.size == 1)
-//                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-//            else if (markerPoints.size == 2) {
-//                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-//            }
         // Add new marker to the Google Map Android API V2
         mGoogleMap!!.addMarker(markerOptions)
         // Checks, whether start and end locations are captured
@@ -249,7 +252,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             isEnoughTwoPoint = true
             val origin = markerPoints[0]
             val dest = markerPoints[1]
-
+            desti = dest
             val polylineOptions = PolylineOptions()
 
             // Print URL to the Google Directions API
@@ -316,6 +319,60 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                     "${dest.latitude}?alternatives=false&geometries=geojson&overview=simplified&steps=false&access_token=pk.eyJ1Ijoid2VlZGx5IiwiYSI6ImNsN2VpMW56bjAwa2gzbnBnaHd2MjJmZGYifQ.It2pYYoWNWQ-9Ogs49OUMg"
             )
             val route = getDirection(origin,dest)
+
+            val currentDistance = route.distance.toFloat()
+            if (lastDistance == -1f){
+                lastDistance = currentDistance
+            }
+            else if (currentDistance == 0f){
+                Toast.makeText(this, "Congratulating you finished journey ", Toast.LENGTH_SHORT)
+                    .show()
+                // Focus my location
+                handleMyLocation()
+                isUpdateLocation = false
+                binding.stopBt.isVisible = false
+                binding.pauseBt.isVisible = false
+                binding.startBt.isVisible = true
+                val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
+                val oldDay = sharedPreferences.getString("Today","")
+                Log.v(TAG,"Old day: $oldDay")
+                val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
+                if (oldDay == today){
+                    Log.v(TAG,"Still in today: $today")
+                    val newDayStep =(
+                            (totalDistanceRunning * 1000) / FOOT_TO_METER).toInt() +
+                            DatabaseAPI(baseContext).getStepSpecifyDay(myWeek!!,today!!)
+
+                    DatabaseAPI(baseContext).updateSpecifyDay(
+                        today,
+                        newDayStep
+                    )
+                    myWeek = DatabaseAPI(baseContext).updateWeek(
+                        myWeek!!,
+                        today,
+                        newDayStep
+                    )
+                }
+                else {
+                    // Reset data
+                    Log.v(TAG, "Change to new day is: $today")
+                    val newDayStep =((totalDistanceRunning / 1000) *
+                            KILOMETER_TO_CALORIE).toInt()
+                    DatabaseAPI(baseContext).updateSpecifyDay(today!!,
+                        ((totalDistanceRunning * 1000) / FOOT_TO_METER).toInt()
+                    )
+                    myWeek = DatabaseAPI(baseContext).updateWeek(
+                        myWeek!!,
+                        today,
+                        newDayStep
+                    )
+                }
+                totalDistanceRunning = 0f
+            }else{
+                totalDistanceRunning += lastDistance!! - currentDistance
+                Log.v(TAG,"totalDistanceRunning : $totalDistanceRunning")
+            }
+
             val coordinates = route.geometry.coordinates
 
             var nextStep = origin
@@ -392,10 +449,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             isEnoughTwoPoint = false
             return true
     }
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.current_place_menu, menu)
-        return true
-    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,

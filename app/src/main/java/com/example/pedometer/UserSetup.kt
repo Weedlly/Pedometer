@@ -51,7 +51,6 @@ class UserSetup : AppCompatActivity() {
 
         isRegister = intent.getBooleanExtra("isRegister",false)
         isTargetFill()
-
         eventHandle()
     }
     private fun eventHandle(){
@@ -86,10 +85,25 @@ class UserSetup : AppCompatActivity() {
         db.collection("Week").whereEqualTo("deviceId",deviceId)
             .get().addOnSuccessListener {
                 if (it.documents.isEmpty()){
+                    Log.v("User","Init user data")
                     database!!.initData(0)
+                    myWeek = Week(database!!.deviceId)
+                    binding!!.bottomNavigation.menu[0].isVisible = false
+                    binding!!.bottomNavigation.menu[1].isVisible = false
                 }
                 else{
+                    Log.v("User","User data is exist")
                     myWeek = it.toObjects<Week>()[0]
+                    if (myWeek!!.stepPerDay == 0){
+                        binding!!.bottomNavigation.menu[0].isVisible = false
+                        binding!!.bottomNavigation.menu[1].isVisible = false
+                    }
+                    else {
+                        maxSteps = myWeek!!.stepPerDay!!.toFloat()
+                        calories = (maxSteps!!.toFloat() * FOOT_TO_CALORIE).toFloat()
+                        binding!!.totalCaloriesEv.setText(calories!!.toInt().toString())
+                        binding!!.totalMaxStepEv.setText(maxSteps!!.toInt().toString())
+                    }
                     if(isRegister) {
                         val countStepIntent = Intent(this, CountStep::class.java)
                         countStepIntent.putExtra("myWeek", myWeek)
