@@ -2,7 +2,6 @@ package com.example.pedometer
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
@@ -44,6 +43,7 @@ const val KILOMETER_TO_CALORIE = 84
 class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityGpsMapBinding
+
     private var absBinding : AbsLayoutBinding? = null
 
     private var markerPoints = ArrayList<LatLng>()
@@ -71,13 +71,13 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     private var isUpdateLocation = false
 
     // Data
+    private var database : DatabaseAPI? = null
     private var myWeek : Week? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityGpsMapBinding.inflate(layoutInflater)
-
         setContentView(binding.root)
 
         //Setup Activity Custom action bar
@@ -91,28 +91,90 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
         //Set up title and init value
         setupTitle()
-        updateTravelInfo(0.0,0.0)
+        updateJourneyInformation(0.0,0.0)
 
         // Take data week
         myWeek = intent.getSerializableExtra("myWeek") as Week
+        Log.v(TAG,"GPS take week : $myWeek")
+        database = DatabaseAPI(baseContext)
 
+        // Start continuous location
+        SmartLocation.with(baseContext).location().start{
+            lastKnownLocation = it
+            if (locationPermissionGranted && isUpdateLocation) {
+                updateTrainingRoute(LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude))
+                Log.v(TAG, "Update location: $lastKnownLocation")
+            }
+        }
         // Update continuous location
         CoroutineScope(Dispatchers.IO).launch{
             while (true) {
+                // Get current location each 5 second
                 delay(5000)
-                SmartLocation.with(baseContext).location().start{
-                    lastKnownLocation = it
-                    if (isUpdateLocation) {
-                        lastKnownLocation!!.latitude = desti!!.latitude
-                        lastKnownLocation!!.longitude = desti!!.longitude
-                    }
-                    if (locationPermissionGranted && isUpdateLocation) {
-                        updateTrainingRoute(LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude))
+                Log.v(TAG, "isUpdateLocation $isUpdateLocation")
+                if (isUpdateLocation) {
+                    lastKnownLocation = SmartLocation.with(baseContext).location().get().lastLocation
+//                    lastKnownLocation!!.latitude = desti!!.latitude
+//                    lastKnownLocation!!.longitude = desti!!.longitude
+                    Log.v(TAG, "Update location: $lastKnownLocation")
+                }
+
+                if (locationPermissionGranted && isUpdateLocation) {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        updateTrainingRoute(
+                            LatLng(
+                                lastKnownLocation!!.latitude,
+                                lastKnownLocation!!.longitude
+                            )
+                        )
                         Log.v(TAG, "Update location: $lastKnownLocation")
                     }
                 }
             }
         }
+
+        // button Start, Stop, Pause
+        buttonControlListener()
+
+        //Bottom navigation
+        bottomNavigationHandle()
+
+        if (savedInstanceState != null) {
+            lastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION)
+            cameraPosition = savedInstanceState.getParcelable(KEY_CAMERA_POSITION)
+        }
+
+        val mapFragment = supportFragmentManager
+                .findFragmentById(R.id.map) as? SupportMapFragment
+        mapFragment?.getMapAsync (this)
+        // Construct a PlacesClient
+        Places.initialize(applicationContext,MAPS_API_KEY)
+        placesClient = Places.createClient(this)
+
+        // Construct a FusedLocationProviderClient.
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+    }
+
+    override fun onMapReady(googleMap: GoogleMap) {
+        this.mGoogleMap = googleMap
+        // Prompt the user for permission.
+        getLocationPermission()
+
+        // Turn on the My Location layer and the related control on the map.
+        updateLocationUI()
+
+        // Get the current location of the device and set the position of the map.
+        getDeviceLocation()
+        mGoogleMap?.setOnMyLocationButtonClickListener {
+            handleMyLocation()
+        }
+
+        mGoogleMap!!.setOnMapClickListener {
+            setupTrainingRoute(it)
+        }
+    }
+
+    private fun buttonControlListener(){
         // Press Start Button to show Stop and Pause Button, also active GPS Training
         binding.startBt.setOnClickListener {
 
@@ -152,46 +214,8 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 binding.pauseBt.text = getString(R.string.pause_button)
             }
         }
-
-        //Bottom navigation
-        bottomNavigationHandle()
-
-        if (savedInstanceState != null) {
-            lastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION)
-            cameraPosition = savedInstanceState.getParcelable(KEY_CAMERA_POSITION)
-        }
-
-        val mapFragment = supportFragmentManager
-                .findFragmentById(R.id.map) as? SupportMapFragment
-        mapFragment?.getMapAsync (this)
-        // Construct a PlacesClient
-        Places.initialize(applicationContext,MAPS_API_KEY)
-        placesClient = Places.createClient(this)
-
-        // Construct a FusedLocationProviderClient.
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
-    override fun onMapReady(googleMap: GoogleMap) {
-        this.mGoogleMap = googleMap
-
-        // Prompt the user for permission.
-        getLocationPermission()
-
-        // Turn on the My Location layer and the related control on the map.
-        updateLocationUI()
-
-        // Get the current location of the device and set the position of the map.
-        getDeviceLocation()
-
-        mGoogleMap?.setOnMyLocationButtonClickListener {
-            handleMyLocation()
-        }
-
-        mGoogleMap!!.setOnMapClickListener {
-            setupTrainingRoute(it)
-        }
-    }
     private fun bottomNavigationHandle(){
         val bottomNavigationView : BottomNavigationView = binding.bottomNavigation
 
@@ -213,7 +237,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-
+    // Mark origin and dest point ,then draw line between them
     private fun setupTrainingRoute(it: LatLng){
         if (markerPoints.size > 1){
             markerPoints.clear()
@@ -227,7 +251,6 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         val markerOptions = MarkerOptions()
         // Setting the position of the marker
         markerOptions.position(it)
-
 
         if  (!it.equals(lastKnownLocation)){
             // Only Des in Lat Array
@@ -274,11 +297,14 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
             polylineOptions.add(nextStep,dest)
             mGoogleMap!!.addPolyline(polylineOptions)
+            lastDistance = route.distance.toFloat()
 
-            updateTravelInfo(route.distance,route.duration)
+            Log.v(TAG,"totalDistanceRunning : $totalDistanceRunning")
+            updateJourneyInformation(route.distance,route.duration)
         }
     }
 
+    // Update current location by mark and draw again
     private fun updateTrainingRoute(it: LatLng){
         var dest : LatLng = it
         if (markerPoints.size > 1){
@@ -321,57 +347,8 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             val route = getDirection(origin,dest)
 
             val currentDistance = route.distance.toFloat()
-            if (lastDistance == -1f){
-                lastDistance = currentDistance
-            }
-            else if (currentDistance == 0f){
-                Toast.makeText(this, "Congratulating you finished journey ", Toast.LENGTH_SHORT)
-                    .show()
-                // Focus my location
-                handleMyLocation()
-                isUpdateLocation = false
-                binding.stopBt.isVisible = false
-                binding.pauseBt.isVisible = false
-                binding.startBt.isVisible = true
-                val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
-                val oldDay = sharedPreferences.getString("Today","")
-                Log.v(TAG,"Old day: $oldDay")
-                val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
-                if (oldDay == today){
-                    Log.v(TAG,"Still in today: $today")
-                    val newDayStep =(
-                            (totalDistanceRunning * 1000) / FOOT_TO_METER).toInt() +
-                            DatabaseAPI(baseContext).getStepSpecifyDay(myWeek!!,today!!)
 
-                    DatabaseAPI(baseContext).updateSpecifyDay(
-                        today,
-                        newDayStep
-                    )
-                    myWeek = DatabaseAPI(baseContext).updateWeek(
-                        myWeek!!,
-                        today,
-                        newDayStep
-                    )
-                }
-                else {
-                    // Reset data
-                    Log.v(TAG, "Change to new day is: $today")
-                    val newDayStep =((totalDistanceRunning / 1000) *
-                            KILOMETER_TO_CALORIE).toInt()
-                    DatabaseAPI(baseContext).updateSpecifyDay(today!!,
-                        ((totalDistanceRunning * 1000) / FOOT_TO_METER).toInt()
-                    )
-                    myWeek = DatabaseAPI(baseContext).updateWeek(
-                        myWeek!!,
-                        today,
-                        newDayStep
-                    )
-                }
-                totalDistanceRunning = 0f
-            }else{
-                totalDistanceRunning += lastDistance!! - currentDistance
-                Log.v(TAG,"totalDistanceRunning : $totalDistanceRunning")
-            }
+            totalDistanceListener(currentDistance)
 
             val coordinates = route.geometry.coordinates
 
@@ -385,10 +362,50 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             polylineOptions.add(nextStep,dest)
             mGoogleMap!!.addPolyline(polylineOptions)
 
-            updateTravelInfo(route.distance,route.duration)
+            updateJourneyInformation(route.distance,route.duration)
+        }
+    }
+    private fun totalDistanceListener(currentDistance : Float){
+        if (currentDistance == 0f){
+            // Notify to user they finish journey
+            Toast.makeText(this, "Congratulating you finished journey ", Toast.LENGTH_SHORT)
+                .show()
+
+            // Focus my location
+            handleMyLocation()
+            isUpdateLocation = false
+            binding.stopBt.isVisible = false
+            binding.pauseBt.isVisible = false
+            binding.startBt.isVisible = true
+
+            fun calculatingStep() : Int{
+                return (totalDistanceRunning / FOOT_TO_METER).toInt()
+            }
+
+            val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
+
+            val newDayStep = calculatingStep() + database!!.getStepSpecifyDay(myWeek!!,today!!)
+
+            // Update my week data
+            myWeek = database!!.updateSpecifyDayOnWeek(
+                myWeek!!,
+                today,
+                newDayStep
+            )
+            Log.v(TAG,"myWeek : $myWeek")
+            totalDistanceRunning = 0f
+        }else{
+            totalDistanceRunning += lastDistance!! - currentDistance
+            Log.v(TAG,"totalDistanceRunning : $totalDistanceRunning")
         }
     }
 
+    override fun onPause() {
+        Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
+        database!!.updateWeekToFireStore(myWeek!!)
+        Log.v(TAG, "Activity on pause, data updating!!!")
+        super.onPause()
+    }
     private fun getDirection(origin: LatLng ,dest: LatLng) : Route {
         val retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create()).build()
         val service: ApiInterface by lazy { retrofit.create(ApiInterface::class.java)}
@@ -425,7 +442,6 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION)
         }
-
     }
 
     // Handle my location action
@@ -468,22 +484,26 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         updateLocationUI()
     }
 
+    // Set up title for some showing information
     private fun setupTitle(){
-        binding.distanceCtv.titleTv.text = getString(R.string.distance_title)
-        binding.distanceCtv.contentTv.text = "0"
-        binding.durationCtv.titleTv.text = getString(R.string.duration_title)
-        binding.durationCtv.contentTv.text = "0"
-        binding.caloriesCtv.titleTv.text = getString(R.string.calorie_title)
-        binding.caloriesCtv.contentTv.text = "0"
+
+        binding.distanceTitleTv.text = getString(R.string.distance_title)
+        binding.distanceContentTv.text = "0"
+        binding.durationTitleTv.text = getString(R.string.duration_title)
+        binding.durationContentTv.text = "0"
+        binding.caloriesTitleTv.text = getString(R.string.calorie_title)
+        binding.caloriesContentTv.text = "0"
     }
-    private fun updateTravelInfo(distance : Double, duration : Double){
+
+    // Update textview which show journey information
+    private fun updateJourneyInformation(distance : Double, duration : Double){
         val kilometer = distance / 1000
         val hours = (duration / 3600).toInt()
         val minus = ((duration - hours * 3600) / 60).toInt()
         val second = (duration - hours * 3600 - minus * 60).toInt()
-        binding.distanceCtv.contentTv.text = baseContext.resources.getString(R.string.distances,kilometer)
-        binding.caloriesCtv.contentTv.text = baseContext.resources.getString(R.string.calories,kilometer * KILOMETER_TO_CALORIE)
-        binding.durationCtv.contentTv.text = baseContext.resources.getString(R.string.duration,
+        binding.distanceContentTv.text = baseContext.resources.getString(R.string.distances,kilometer)
+        binding.caloriesContentTv.text = baseContext.resources.getString(R.string.calories,kilometer * KILOMETER_TO_CALORIE)
+        binding.durationContentTv.text = baseContext.resources.getString(R.string.duration,
             hours,
             minus,
             second)
@@ -497,10 +517,10 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         }
         try{
             if (locationPermissionGranted){
-                mGoogleMap?.isMyLocationEnabled = true
+//                mGoogleMap?.isMyLocationEnabled = true
                 mGoogleMap?.uiSettings?.isMyLocationButtonEnabled = true
             }else{
-                mGoogleMap?.isMyLocationEnabled = false
+//                mGoogleMap?.isMyLocationEnabled = false
                 mGoogleMap?.uiSettings?.isMyLocationButtonEnabled = false
                 lastKnownLocation = null
                 getLocationPermission()

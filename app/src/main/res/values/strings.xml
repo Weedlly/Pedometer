@@ -33,6 +33,8 @@
     <string name="hint_target_calories_per_day">Target calories per day</string>
     <string name="calories_unit">calories</string>
     <string name="go">Go</string>
+    <string name="content">Content</string>
+    <string name="title">Title</string>
 
 
 </resources>

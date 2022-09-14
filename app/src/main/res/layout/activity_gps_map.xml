@@ -22,7 +22,7 @@
         map:uiZoomControls="true"
         map:uiRotateGestures="true"
         map:cameraTilt="30"
-        >
+        tools:ignore="FragmentTagUsage">
     </fragment>
     <LinearLayout
         android:layout_width="match_parent"
@@ -39,26 +39,88 @@
             android:orientation="horizontal"
             android:weightSum="3"
             android:baselineAligned="false"
-            android:background="@color/white">
-            <include
-                android:id="@+id/distance_ctv"
+            android:background="@color/white"
+            android:padding="5dp"
+            tools:context=".GpsMap"
+            tools:ignore="NestedWeights">
+            <RelativeLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                layout="@layout/textview_custom"
-                android:visibility="visible"/>
-            <include
-                android:id="@+id/calories_ctv"
+                android:visibility="visible"
+                >
+                <TextView
+                    android:id="@+id/distance_content_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:textAlignment="center"
+                    android:text="@string/content"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    />
+                <TextView
+                    android:id="@+id/distance_title_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:textAlignment="center"
+                    android:layout_below="@id/distance_content_tv"
+                    android:text="@string/title"
+                    />
+            </RelativeLayout>
+            <RelativeLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                layout="@layout/textview_custom"/>
-            <include
-                android:id="@+id/duration_ctv"
+                android:visibility="visible"
+                >
+                <TextView
+                    android:id="@+id/calories_content_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:textAlignment="center"
+                    android:text="@string/content"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    />
+                <TextView
+                    android:id="@+id/calories_title_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:textAlignment="center"
+                    android:layout_below="@id/calories_content_tv"
+                    android:text="@string/title"
+                    />
+            </RelativeLayout>
+            <RelativeLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                layout="@layout/textview_custom"/>
+                android:visibility="visible"
+                >
+                <TextView
+                    android:id="@+id/duration_content_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:textAlignment="center"
+                    android:text="@string/content"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    />
+                <TextView
+                    android:id="@+id/duration_title_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:textAlignment="center"
+                    android:layout_below="@id/duration_content_tv"
+                    android:text="@string/title"
+                    />
+            </RelativeLayout>
         </LinearLayout>
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"

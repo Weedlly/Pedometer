@@ -31,7 +31,6 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private var running = false
     private var totalStep: Float = 0f
     private var previousTotalSteps = 0f
-    private var myToday: String? = null
     private var maxStep: Float? = null
 
     //  Static data
@@ -77,13 +76,11 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         myWeek = intent.getSerializableExtra("myWeek") as Week
         maxStep = myWeek!!.stepPerDay!!.toFloat()
         binding!!.progressCircular.progressMax = maxStep!!
-        database!!.updateTargetStep(maxStep!!.toInt())
 
         //Counter monitor
         loadTime()
         loadData()
         resetStep()
-        checkNewDay()
 
         //Chart visualise
         barChart = binding!!.weeklyBarChartBc
@@ -176,7 +173,12 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         super.onPause()
         saveData()
         Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
-        database!!.updateSpecifyDay(myToday!!, totalStep.toInt())
+        myWeek = database!!.updateSpecifyDayOnWeek(
+            myWeek!!,
+            getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))!!,
+            totalStep.toInt()
+        )
+        database!!.updateWeekToFireStore(myWeek!!)
         Log.v(TAG, "Activity on pause, data updating!!!")
     }
 
@@ -231,30 +233,8 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         val editor = sharedPreferences.edit()
         editor.putFloat("previousTotalSteps", previousTotalSteps)
 
-        // Save day
-        val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
-        editor.putString("Today", today)
-        Log.v(TAG, "Today save is: $today")
-
         editor.apply()
 
-    }
-
-    private fun checkNewDay() {
-        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
-        val oldDay = sharedPreferences.getString("Today", "")
-        Log.v(TAG, "Old day: $oldDay")
-        val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
-        if (oldDay == today) {
-            Log.v(TAG, "Still in today: $today")
-        } else {
-            // Reset data
-            Log.v(TAG, "Change to new day is: $today")
-            database!!.updateSpecifyDay(today!!, totalStep.toInt())
-            previousTotalSteps = 0f
-            initData(0f)
-        }
-        myToday = today
     }
 
     private fun loadData() {

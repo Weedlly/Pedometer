@@ -40,7 +40,9 @@ class DatabaseAPI (context: Context) {
                 Log.v(TAG,"Init data successful")
             }
     }
-    fun updateSpecifyDay(dayName: String, step: Int){
+
+    // Update the step of specify day
+    fun updateWeekToFireStore(newWeek: Week){
 
         db.collection("Week").whereEqualTo("deviceId", deviceId)
             .get().addOnSuccessListener {
@@ -49,41 +51,20 @@ class DatabaseAPI (context: Context) {
                     docId = it.documents[0].id
                     Log.v(TAG, "DocId: ${it.documents[0].id}")
 
-                    val oldWeek = it.toObjects<Week>()[0]
-                    when (dayName){
-                        "Monday"->{
-                            oldWeek.mon = step
-                        }
-                        "Tuesday"->{
-                            oldWeek.tue = step
-                        }
-                        "Wednesday"->{
-                            oldWeek.wed = step
-                        }
-                        "Thursday"->{
-                            oldWeek.thu = step
-                        }
-                        "Friday"->{
-                            oldWeek.fri = step
-                        }
-                        "Saturday"->{
-                            oldWeek.sat = step
-                        }
-                        "Sunday"->{
-                            oldWeek.sun = step
-                        }
-                    }
-
                     db.collection("Week").document(docId!!).delete()
 
-                    db.collection("Week").add(oldWeek)
+                    db.collection("Week").add(newWeek)
                         .addOnSuccessListener {
                             Log.v(TAG, "Update data successful")
                         }
+                }else{
+                    Log.v(TAG, "Update failed : Data not exist")
                 }
             }
     }
-    fun updateTargetStep(targetStep: Int){
+
+    // Update the target step
+    fun updateTargetStepToFireStore(targetStep: Int){
         db.collection("Week").whereEqualTo("deviceId", deviceId)
             .get().addOnSuccessListener {
                 if (it.documents.isNotEmpty()) {
@@ -100,6 +81,8 @@ class DatabaseAPI (context: Context) {
                         .addOnSuccessListener {
                             Log.v(TAG, "Update data successful")
                         }
+                }else{
+                    Log.v(TAG, "Update failed : Data not exist")
                 }
             }
     }
@@ -129,34 +112,34 @@ class DatabaseAPI (context: Context) {
             else -> 0
         }
     }
-    fun updateWeek(week: Week,dayName: String, step :Int) : Week{
+    fun updateSpecifyDayOnWeek(week: Week, dayName: String, step :Int) : Week{
         return when (dayName){
             "Monday" -> {
-                week.mon!!.plus(step)
+                week.mon = week.mon!!.plus(step)
                 return week
             }
             "Tuesday" -> {
-                week.tue!!.plus(step)
+                week.tue = week.tue!!.plus(step)
                 return week
             }
             "Wednesday" -> {
-                week.wed!!.plus(step)
+                week.wed = week.wed!!.plus(step)
                 return week
             }
             "Thursday" -> {
-                week.thu!!.plus(step)
+                week.thu = week.thu!!.plus(step)
                 return week
             }
             "Friday" -> {
-                week.fri!!.plus(step)
+                week.fri = week.fri!!.plus(step)
                 return week
             }
             "Saturday" -> {
-                week.sat!!.plus(step)
+                week.sat = week.sat!!.plus(step)
                 return week
             }
             "Sunday" -> {
-                week.sun!!.plus(step)
+                week.sun = week.sun!!.plus(step)
                 return week
             }
             else -> week

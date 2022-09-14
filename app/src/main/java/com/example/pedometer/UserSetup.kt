@@ -1,5 +1,6 @@
 package com.example.pedometer
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -14,6 +15,7 @@ import com.example.pedometer.databinding.ActivityUserSetupBinding
 import com.example.pedometer.model.countstep.Week
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.firestore.ktx.toObjects
+import java.util.*
 
 class UserSetup : AppCompatActivity() {
     private var database : DatabaseAPI? = null
@@ -25,6 +27,10 @@ class UserSetup : AppCompatActivity() {
     private var calories: Float? = 0f
     private var isRegister : Boolean = false
     private var myWeek : Week? = null
+
+    companion object{
+        private const val TAG = "UserSetup"
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityUserSetupBinding.inflate(layoutInflater)
@@ -39,7 +45,8 @@ class UserSetup : AppCompatActivity() {
         supportActionBar!!.customView = absBinding!!.root
         absBinding!!.activityTitleTv.text =  baseContext.resources.getString(R.string.user_setup_activity_title)
 
-
+        // Because delay when connect to Firestore so need to prevent user moving to another screen
+        bottomNavigationVisible(false)
 
         //Bottom navigation
         bottomNavigationHandle()
@@ -50,6 +57,7 @@ class UserSetup : AppCompatActivity() {
         Log.v("User","Get key success: $deviceId")
 
         isRegister = intent.getBooleanExtra("isRegister",false)
+
         isTargetFill()
         eventHandle()
     }
@@ -81,6 +89,18 @@ class UserSetup : AppCompatActivity() {
             }
         }
     }
+
+    override fun onPause() {
+        super.onPause()
+        // Save day
+        saveData()
+
+        Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
+        myWeek!!.stepPerDay = maxSteps!!.toInt()
+
+        database!!.updateTargetStepToFireStore(maxSteps!!.toInt())
+        Log.v(TAG, "Activity on pause, data updating!!!")
+    }
     private fun isTargetFill(){
         db.collection("Week").whereEqualTo("deviceId",deviceId)
             .get().addOnSuccessListener {
@@ -88,21 +108,20 @@ class UserSetup : AppCompatActivity() {
                     Log.v("User","Init user data")
                     database!!.initData(0)
                     myWeek = Week(database!!.deviceId)
-                    binding!!.bottomNavigation.menu[0].isVisible = false
-                    binding!!.bottomNavigation.menu[1].isVisible = false
+                    bottomNavigationVisible(false)
                 }
                 else{
                     Log.v("User","User data is exist")
                     myWeek = it.toObjects<Week>()[0]
                     if (myWeek!!.stepPerDay == 0){
-                        binding!!.bottomNavigation.menu[0].isVisible = false
-                        binding!!.bottomNavigation.menu[1].isVisible = false
+                        bottomNavigationVisible(false)
                     }
                     else {
                         maxSteps = myWeek!!.stepPerDay!!.toFloat()
                         calories = (maxSteps!!.toFloat() * FOOT_TO_CALORIE).toFloat()
                         binding!!.totalCaloriesEv.setText(calories!!.toInt().toString())
                         binding!!.totalMaxStepEv.setText(maxSteps!!.toInt().toString())
+                        bottomNavigationVisible(true)
                     }
                     if(isRegister) {
                         val countStepIntent = Intent(this, CountStep::class.java)
@@ -110,7 +129,12 @@ class UserSetup : AppCompatActivity() {
                         startActivity(countStepIntent)
                     }
                 }
+                checkNewDay()
             }
+    }
+    private fun bottomNavigationVisible(flag : Boolean){
+        binding!!.bottomNavigation.menu[0].isVisible = flag
+        binding!!.bottomNavigation.menu[1].isVisible = flag
     }
     private fun bottomNavigationHandle(){
         val bottomNavigationView : BottomNavigationView = binding!!.bottomNavigation
@@ -130,6 +154,30 @@ class UserSetup : AppCompatActivity() {
                 }
             }
             true
+        }
+    }
+    private fun saveData() {
+        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
+
+        val editor = sharedPreferences.edit()
+        // Save day
+        val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
+        editor.putString("Today", today)
+        Log.v(TAG, "Today save is: $today")
+        editor.apply()
+
+    }
+    private fun checkNewDay() {
+        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
+        val oldDay = sharedPreferences.getString("Today", "")
+        Log.v(TAG, "Old day: $oldDay")
+        val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
+        if (oldDay == today) {
+            Log.v(TAG, "Still in today: $today")
+        } else {
+            // Reset data
+            Log.v(TAG, "Change to new day is: $today")
+            myWeek = database!!.updateSpecifyDayOnWeek(myWeek!!,today!!,0)
         }
     }
 }
