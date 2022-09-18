@@ -5,6 +5,7 @@ import androidx.core.content.ContextCompat
 import com.example.pedometer.R
 import com.example.pedometer.model.countstep.Week
 import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.BarData
@@ -12,6 +13,7 @@ import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
+import com.github.mikephil.charting.utils.MPPointF
 
 class WeekChart private constructor(
     private var barChart: BarChart
@@ -43,7 +45,8 @@ class WeekChart private constructor(
             barChart.axisRight.isEnabled = false
             barChart.xAxis.position = XAxis.XAxisPosition.BOTTOM
             barChart.xAxis.textColor = ContextCompat.getColor(baseContext, R.color.silver)
-            barChart.xAxis.textSize = 12f
+            barChart.xAxis.textSize = 18f
+            barChart.setDrawValueAboveBar(true)
 
             val xAxis: XAxis = barChart.xAxis
 
@@ -52,6 +55,7 @@ class WeekChart private constructor(
                     return X_TITLE[value.toInt()]
                 }
             }
+
             val axisLeft: YAxis = barChart.axisLeft
             axisLeft.granularity = 10f
             axisLeft.axisMinimum = 0f
@@ -60,6 +64,7 @@ class WeekChart private constructor(
             val axisRight: YAxis = barChart.axisRight
             axisRight.granularity = 10f
             axisRight.axisMinimum = 0f
+
         }
 
         fun setWeek(week: Week) = apply {
@@ -76,6 +81,7 @@ class WeekChart private constructor(
             values.add(BarEntry(i++, myWeek.fri!!.toFloat()))
             values.add(BarEntry(i, myWeek.sat!!.toFloat()))
 
+
             val barDataSet = BarDataSet(values, null)
             barDataSet.color = ContextCompat.getColor(baseContext, R.color.yellow)
             barDataSet.valueTextColor = ContextCompat.getColor(baseContext, R.color.white)
@@ -84,10 +90,10 @@ class WeekChart private constructor(
             dataSets.add(barDataSet)
 
             val barData = BarData(dataSets)
-            barData.setValueTextSize(10f)
-
+            barData.setValueTextSize(15f)
             barChart.data = barData
             barChart.invalidate()
+
         }
 
         fun build() = WeekChart(

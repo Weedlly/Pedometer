@@ -2,8 +2,13 @@ package com.example.pedometer
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
@@ -15,7 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import androidx.core.view.isVisible
 import com.example.pedometer.BuildConfig.MAPS_API_KEY
-import com.example.pedometer.database.DatabaseAPI
+import com.example.pedometer.database.DatabasePreference
 import com.example.pedometer.databinding.AbsLayoutBinding
 import com.example.pedometer.databinding.ActivityGpsMapBinding
 import com.example.pedometer.model.countstep.Week
@@ -40,15 +45,15 @@ import java.util.*
 private const val baseUrl = "https://api.mapbox.com"
 
 const val KILOMETER_TO_CALORIE = 84
-class GpsMap : AppCompatActivity(), OnMapReadyCallback {
+class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
 
     private lateinit var binding: ActivityGpsMapBinding
 
     private var absBinding : AbsLayoutBinding? = null
 
     private var markerPoints = ArrayList<LatLng>()
-    private var totalDistanceRunning :Float = 0f
-    private var lastDistance :Float? = -1f
+    private var totalStep : Float = 0f
+
     private var mGoogleMap: GoogleMap? = null
     private var cameraPosition: CameraPosition? = null
 
@@ -70,9 +75,13 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
     private var isUpdateLocation = false
 
+    // Counter step
+    private var sensorManager : SensorManager? = null
+
     // Data
-    private var database : DatabaseAPI? = null
+    private var databasePreference : DatabasePreference? = null
     private var myWeek : Week? = null
+    private var today : Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,16 +96,18 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         absBinding = AbsLayoutBinding.inflate(layoutInflater)
         supportActionBar!!.customView = absBinding!!.root
         absBinding!!.activityTitleTv.text = baseContext.resources.getString(R.string.title_activity_gps_map)
-        absBinding!!.activityTitleTv.textSize = 19f
 
         //Set up title and init value
         setupTitle()
         updateJourneyInformation(0.0,0.0)
 
         // Take data week
+
+        today = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
         myWeek = intent.getSerializableExtra("myWeek") as Week
+        loadWeekData()
         Log.v(TAG,"GPS take week : $myWeek")
-        database = DatabaseAPI(baseContext)
+        databasePreference = DatabasePreference(baseContext)
 
         // Start continuous location
         SmartLocation.with(baseContext).location().start{
@@ -112,15 +123,16 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
                 // Get current location each 5 second
                 delay(5000)
                 Log.v(TAG, "isUpdateLocation $isUpdateLocation")
-                if (isUpdateLocation) {
-                    lastKnownLocation = SmartLocation.with(baseContext).location().get().lastLocation
-//                    lastKnownLocation!!.latitude = desti!!.latitude
-//                    lastKnownLocation!!.longitude = desti!!.longitude
-                    Log.v(TAG, "Update location: $lastKnownLocation")
-                }
+//                if (isUpdateLocation) {
+//                    lastKnownLocation = SmartLocation.with(baseContext).location().get().lastLocation
+////                    lastKnownLocation!!.latitude = desti!!.latitude
+////                    lastKnownLocation!!.longitude = desti!!.longitude
+//                    Log.v(TAG, "Update location: $lastKnownLocation")
+//                }
 
                 if (locationPermissionGranted && isUpdateLocation) {
                     CoroutineScope(Dispatchers.Main).launch {
+                        lastKnownLocation = SmartLocation.with(baseContext).location().get().lastLocation
                         updateTrainingRoute(
                             LatLng(
                                 lastKnownLocation!!.latitude,
@@ -153,8 +165,48 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
         // Construct a FusedLocationProviderClient.
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+
+        // Set up sensor manager
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
 
+    override fun onSensorChanged(p0: SensorEvent?) {
+        if (p0!!.sensor.type == Sensor.TYPE_STEP_DETECTOR){
+            if (isUpdateLocation)
+            {
+                totalStep += p0.values[0]
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val stepSensor : Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+        if (stepSensor == null) {
+            Toast.makeText(this, "No sensor detected on this device", Toast.LENGTH_SHORT).show()
+        } else {
+            sensorManager?.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_FASTEST)
+            Log.v(TAG, "Start")
+        }
+    }
+
+        private fun loadWeekData() : Boolean {
+        val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
+
+        myWeek!!.deviceId = sharedPreferences.getString("deviceId","")
+        myWeek!!.stepPerDay = sharedPreferences.getInt("stepPerDay",0)
+        myWeek!!.mon = sharedPreferences.getInt("monStep",0)
+        myWeek!!.tue = sharedPreferences.getInt("tueStep",0)
+        myWeek!!.wed = sharedPreferences.getInt("wedStep",0)
+        myWeek!!.thu = sharedPreferences.getInt("thuStep",0)
+        myWeek!!.fri = sharedPreferences.getInt("friStep",0)
+        myWeek!!.sat = sharedPreferences.getInt("satStep",0)
+        myWeek!!.sun = sharedPreferences.getInt("sunStep",0)
+        return true
+    }
     override fun onMapReady(googleMap: GoogleMap) {
         this.mGoogleMap = googleMap
         // Prompt the user for permission.
@@ -173,7 +225,13 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             setupTrainingRoute(it)
         }
     }
-
+    private fun saveData() {
+        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
+        // Save step
+        val editor = sharedPreferences.edit()
+        editor.putFloat("previousTotalSteps", totalStep)
+        editor.apply()
+    }
     private fun buttonControlListener(){
         // Press Start Button to show Stop and Pause Button, also active GPS Training
         binding.startBt.setOnClickListener {
@@ -200,6 +258,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             binding.stopBt.isVisible = false
             binding.pauseBt.isVisible = false
             binding.startBt.isVisible = true
+            setupTitle()
         }
 
         binding.pauseBt.setOnClickListener {
@@ -297,9 +356,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
             polylineOptions.add(nextStep,dest)
             mGoogleMap!!.addPolyline(polylineOptions)
-            lastDistance = route.distance.toFloat()
 
-            Log.v(TAG,"totalDistanceRunning : $totalDistanceRunning")
             updateJourneyInformation(route.distance,route.duration)
         }
     }
@@ -320,8 +377,8 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
         val markerOptionsDest = MarkerOptions()
         val markerOptionsCurrent = MarkerOptions()
         // Setting the position of the marker
-        markerOptionsCurrent.position(it).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-        markerOptionsDest.position(dest).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+        markerOptionsCurrent.position(it).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+        markerOptionsDest.position(dest).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
 
         Log.v(TAG,"Array point size : ${markerPoints.size}")
 
@@ -348,7 +405,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
 
             val currentDistance = route.distance.toFloat()
 
-            totalDistanceListener(currentDistance)
+            journeyFinishingListener(currentDistance)
 
             val coordinates = route.geometry.coordinates
 
@@ -365,8 +422,8 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             updateJourneyInformation(route.distance,route.duration)
         }
     }
-    private fun totalDistanceListener(currentDistance : Float){
-        if (currentDistance == 0f){
+    private fun journeyFinishingListener(currentDistance : Float){
+        if (currentDistance <= 10f){
             // Notify to user they finish journey
             Toast.makeText(this, "Congratulating you finished journey ", Toast.LENGTH_SHORT)
                 .show()
@@ -377,34 +434,44 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
             binding.stopBt.isVisible = false
             binding.pauseBt.isVisible = false
             binding.startBt.isVisible = true
+            setupTitle()
 
-            fun calculatingStep() : Int{
-                return (totalDistanceRunning / FOOT_TO_METER).toInt()
-            }
-
-            val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
-
-            val newDayStep = calculatingStep() + database!!.getStepSpecifyDay(myWeek!!,today!!)
-
-            // Update my week data
-            myWeek = database!!.updateSpecifyDayOnWeek(
-                myWeek!!,
-                today,
-                newDayStep
-            )
-            Log.v(TAG,"myWeek : $myWeek")
-            totalDistanceRunning = 0f
-        }else{
-            totalDistanceRunning += lastDistance!! - currentDistance
-            Log.v(TAG,"totalDistanceRunning : $totalDistanceRunning")
+            updateData()
         }
     }
+    private fun updateData(){
+        myWeek = databasePreference!!.plusStepSpecificDay(
+            myWeek!!,
+            today!!,
+            totalStep.toInt())
+        totalStep = databasePreference!!.getStepSpecifyDay(myWeek!!, today!!).toFloat()
 
+        saveData()
+        saveWeekData()
+        totalStep = 0f
+    }
     override fun onPause() {
         Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
-        database!!.updateWeekToFireStore(myWeek!!)
+        updateData()
         Log.v(TAG, "Activity on pause, data updating!!!")
         super.onPause()
+    }
+    private fun saveWeekData() {
+        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
+        // Save step
+        val editor = sharedPreferences.edit()
+        Log.v(TAG,"Week save is : $myWeek")
+        editor.putString("deviceId", myWeek!!.deviceId)
+        editor.putInt("stepPerDay",myWeek!!.stepPerDay!!)
+        editor.putInt("monStep",myWeek!!.mon!!)
+        editor.putInt("tueStep",myWeek!!.tue!!)
+        editor.putInt("wedStep",myWeek!!.wed!!)
+        editor.putInt("thuStep",myWeek!!.thu!!)
+        editor.putInt("friStep",myWeek!!.fri!!)
+        editor.putInt("satStep",myWeek!!.sat!!)
+        editor.putInt("sunStep",myWeek!!.sun!!)
+
+        editor.apply()
     }
     private fun getDirection(origin: LatLng ,dest: LatLng) : Route {
         val retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create()).build()
@@ -565,7 +632,7 @@ class GpsMap : AppCompatActivity(), OnMapReadyCallback {
     override fun onStop() {
         SmartLocation.with(baseContext).location().stop()
     super.onStop()
-}
+    }
     companion object {
         private val TAG = GpsMap::class.java.simpleName
         private const val DEFAULT_ZOOM = 15

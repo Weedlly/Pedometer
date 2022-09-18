@@ -2,6 +2,7 @@ package com.example.pedometer
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -11,9 +12,11 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import com.example.pedometer.builders.WeekChart
-import com.example.pedometer.database.DatabaseAPI
+import com.example.pedometer.database.DatabasePreference
 import com.example.pedometer.databinding.AbsLayoutBinding
 import com.example.pedometer.databinding.ActivityCountStepBinding
 import com.example.pedometer.model.countstep.Week
@@ -30,7 +33,6 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private var sensorManager: SensorManager? = null
     private var running = false
     private var totalStep: Float = 0f
-    private var previousTotalSteps = 0f
     private var maxStep: Float? = null
 
     //  Static data
@@ -39,10 +41,9 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         private val X_TITLE: Array<String> =
             arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
     }
-
+    private var todayNumber : Int? = null
     private var barChart: BarChart? = null
-    private var database: DatabaseAPI? = null
-    private var deviceId: String? = null
+    private var databasePreference: DatabasePreference? = null
 
     private var myWeek: Week? = null
 
@@ -60,22 +61,27 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         absBinding = AbsLayoutBinding.inflate(layoutInflater)
+
         supportActionBar!!.customView = absBinding!!.root
-        absBinding!!.activityTitleTv.text =
-            baseContext.resources.getString(R.string.count_step_activity_title)
-        absBinding!!.activityTitleTv.textSize = 23f
+        absBinding!!.activityTitleTv.text = baseContext.resources.getString(R.string.count_step_activity_title)
         //Bottom navigation
         bottomNavigationHandle()
 
-        // Get My database Key
-        database = DatabaseAPI(baseContext)
-        deviceId = database!!.deviceId
-        Log.v(TAG, "Get key success: $deviceId")
-
         // Take data week
+
         myWeek = intent.getSerializableExtra("myWeek") as Week
+
+
+        loadWeekData()
         maxStep = myWeek!!.stepPerDay!!.toFloat()
         binding!!.progressCircular.progressMax = maxStep!!
+
+        // Init database
+        databasePreference = DatabasePreference(baseContext)
+        todayNumber = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+
+        binding!!.totalMaxStepTv.text =baseContext.resources.getString(R.string.aim_step,maxStep!!.toInt())
+        Log.v(TAG, "Max step : $maxStep")
 
         //Counter monitor
         loadTime()
@@ -87,13 +93,26 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
         //Construct bar chart
         constructBarChar()
-        //init data to test
-//        initData(500f)
+//        //init data to test
+        initData()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
     }
+    private fun loadWeekData() : Boolean {
+        val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
 
+        myWeek!!.deviceId = sharedPreferences.getString("deviceId","")
+        myWeek!!.stepPerDay = sharedPreferences.getInt("stepPerDay",0)
+        myWeek!!.mon = sharedPreferences.getInt("monStep",0)
+        myWeek!!.tue = sharedPreferences.getInt("tueStep",0)
+        myWeek!!.wed = sharedPreferences.getInt("wedStep",0)
+        myWeek!!.thu = sharedPreferences.getInt("thuStep",0)
+        myWeek!!.fri = sharedPreferences.getInt("friStep",0)
+        myWeek!!.sat = sharedPreferences.getInt("satStep",0)
+        myWeek!!.sun = sharedPreferences.getInt("sunStep",0)
+        return true
+    }
     private fun constructBarChar() {
         barChart = WeekChart.WeekChartBuilder(
             barChart!!,
@@ -102,8 +121,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         )
             .setMaxStep(maxStep!!)
             .setWeek(myWeek!!).build()
-        binding!!.totalMaxStepTv.text = maxStep!!.toInt().toString()
-        Log.v(TAG, "Max step : $maxStep")
+
     }
 
     private fun bottomNavigationHandle() {
@@ -127,84 +145,97 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    private fun countCurrentSteps(): Int {
-        return totalStep.toInt() - previousTotalSteps.toInt()
-    }
 
-    private fun initData(step: Float) {
-        totalStep = step
-        val currentSteps = countCurrentSteps()
-        binding!!.stepsTakenTv.text = ("$currentSteps")
+    private fun initData() {
 
-        var percent = (currentSteps * 100 / maxStep!!)
+        binding!!.stepsTakenTv.text = ("${totalStep.toInt()}")
+
+        var percent = (totalStep * 100 / maxStep!!)
         if (percent.isNaN()) percent = 0f
         binding!!.percentTv.text =
             baseContext.resources.getString(R.string.percent_aim, percent.roundToInt())
 
 
         binding!!.progressCircular.apply {
-            setProgressWithAnimation(currentSteps.toFloat())
+            setProgressWithAnimation(totalStep)
         }
 
         binding!!.distanceContentTv.text = baseContext.resources.getString(
             R.string.distances,
-            FOOT_TO_METER * currentSteps
+            FOOT_TO_METER * totalStep
         )
         binding!!.caloriesContentTv.text = baseContext.resources.getString(
             R.string.calories,
-            FOOT_TO_CALORIE * currentSteps
+            FOOT_TO_CALORIE * totalStep
         )
     }
-
+    private fun activityRecognitionPermission(){
+        var acceptCode  = 1
+        if (ContextCompat.checkSelfPermission(this,android.Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED){
+            ActivityCompat.requestPermissions(this,
+                arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION),
+                acceptCode)
+        }
+//        initData(0f)
+        Toast.makeText(this, "Don't accept!!! : $acceptCode" , Toast.LENGTH_SHORT).show()
+    }
     override fun onResume() {
         super.onResume()
         Toast.makeText(this, "Resume!!!", Toast.LENGTH_SHORT).show()
         running = true
-        val stepSensor: Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+//        activityRecognitionPermission()
+
+        val stepSensor: Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
         if (stepSensor == null) {
             Toast.makeText(this, "No sensor detected on this device", Toast.LENGTH_SHORT).show()
         } else {
             sensorManager?.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_FASTEST)
             Log.v(TAG, "Start")
         }
+
     }
 
     override fun onPause() {
         super.onPause()
-        saveData()
-        Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
-        myWeek = database!!.updateSpecifyDayOnWeek(
+        running = false
+        Toast.makeText(this, "Pause!!! $totalStep", Toast.LENGTH_SHORT).show()
+
+        myWeek = databasePreference!!.updateSpecifyDay(
             myWeek!!,
-            getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))!!,
+            todayNumber!!,
             totalStep.toInt()
         )
-        database!!.updateWeekToFireStore(myWeek!!)
+        saveData()
+        saveWeekData()
         Log.v(TAG, "Activity on pause, data updating!!!")
     }
 
     override fun onSensorChanged(p0: SensorEvent?) {
-        if (p0!!.sensor.type == Sensor.TYPE_STEP_COUNTER) {
+        Toast.makeText(this, "Sensor running!!!", Toast.LENGTH_SHORT).show()
+        if (p0!!.sensor.type == Sensor.TYPE_STEP_DETECTOR) {
             if (running) {
-                totalStep = p0.values[0]
-                val currentSteps = totalStep.toInt() - previousTotalSteps.toInt()
-                binding!!.stepsTakenTv.text = ("$currentSteps")
-                var percent = (currentSteps * 100 / maxStep!!)
+                totalStep += p0.values[0]
+                myWeek = databasePreference!!.updateSpecifyDay(myWeek!!,todayNumber!!,totalStep.toInt())
+                Log.v(TAG,"Sensor value: $totalStep")
+
+                binding!!.stepsTakenTv.text = ("${totalStep.toInt()}")
+                var percent = (totalStep * 100 / maxStep!!)
                 if (percent.isNaN()) percent = 0f
                 binding!!.percentTv.text =
                     baseContext.resources.getString(R.string.percent_aim, percent.roundToInt())
 
                 binding!!.progressCircular.apply {
-                    setProgressWithAnimation(currentSteps.toFloat())
+                    setProgressWithAnimation(totalStep)
                 }
                 Toast.makeText(this, "Counting!!!", Toast.LENGTH_SHORT).show()
                 Log.v(TAG, "Counting!!!")
                 binding!!.distanceContentTv.text = baseContext.resources.getString(
                     R.string.distances,
-                    FOOT_TO_METER * currentSteps
+                    FOOT_TO_METER * totalStep
                 )
                 binding!!.caloriesContentTv.text = baseContext.resources.getString(
                     R.string.calories,
-                    FOOT_TO_CALORIE * currentSteps
+                    FOOT_TO_CALORIE * totalStep
                 )
             }
         }
@@ -219,10 +250,11 @@ class CountStep : AppCompatActivity(), SensorEventListener {
             Toast.makeText(this, "Long tap to reset steps", Toast.LENGTH_SHORT).show()
         }
         binding!!.stepsTakenTv.setOnLongClickListener {
-            previousTotalSteps = totalStep
+            totalStep = 0f
             binding!!.stepsTakenTv.text = "0"
             binding!!.percentTv.text = baseContext.resources.getString(R.string.percent_aim, 0)
             saveData()
+            saveWeekData()
             true
         }
     }
@@ -231,17 +263,36 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
         // Save step
         val editor = sharedPreferences.edit()
-        editor.putFloat("previousTotalSteps", previousTotalSteps)
+        editor.putFloat("previousTotalSteps", totalStep)
+        editor.apply()
+    }
+
+    private fun saveWeekData() {
+        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
+
+        val editor = sharedPreferences.edit()
+
+        Log.v(TAG,"Week save is : $myWeek")
+        editor.putString("deviceId", myWeek!!.deviceId)
+        editor.putInt("stepPerDay",myWeek!!.stepPerDay!!)
+        editor.putInt("monStep",myWeek!!.mon!!)
+        editor.putInt("tueStep",myWeek!!.tue!!)
+        editor.putInt("wedStep",myWeek!!.wed!!)
+        editor.putInt("thuStep",myWeek!!.thu!!)
+        editor.putInt("friStep",myWeek!!.fri!!)
+        editor.putInt("satStep",myWeek!!.sat!!)
+        editor.putInt("sunStep",myWeek!!.sun!!)
 
         editor.apply()
-
     }
+
 
     private fun loadData() {
         val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
         val saveNumber = sharedPreferences.getFloat("previousTotalSteps", 0f)
         Log.v(TAG, "$saveNumber")
-        previousTotalSteps = saveNumber
+        totalStep = saveNumber
+
     }
 
     private fun loadTime() {

@@ -11,7 +11,7 @@ import com.google.firebase.ktx.Firebase
 
 @SuppressLint("StaticFieldLeak")
 val db = Firebase.firestore
-class DatabaseAPI (context: Context) {
+class DatabaseFireStore (context: Context) {
     companion object {
         const val TAG = "Database"
     }

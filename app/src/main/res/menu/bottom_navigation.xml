@@ -12,7 +12,7 @@
         />
     <item android:id="@+id/target"
         android:title=""
-        android:icon="@drawable/amu_bubble_mask"
+        android:icon="@drawable/ic_baseline_local_fire_department_24"
         />
 
 </menu>

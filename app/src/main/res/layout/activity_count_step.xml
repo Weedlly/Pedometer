@@ -26,7 +26,10 @@
             android:layout_width="300dp"
             android:layout_height="300dp"
             android:layout_centerInParent="true"
-            android:layout_margin="20dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="20dp"
             android:outlineAmbientShadowColor="@color/yellow"
             android:outlineSpotShadowColor="@color/yellow"
             app:cpb_background_progressbar_color="@color/dark_green"
@@ -45,7 +48,7 @@
             android:layout_centerInParent="true"
             android:layout_above="@id/totalMaxStep_tv"
             android:textColor="@android:color/white"
-            android:textSize="40sp" />
+            android:textSize="48sp" />
 
         <TextView
             android:id="@+id/percent_tv"
@@ -54,22 +57,20 @@
             android:layout_centerInParent="true"
             android:layout_above="@id/stepsTaken_tv"
             android:textColor="@color/silver"
-            android:textSize="14sp" />
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/totalMaxStep_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-
             android:layout_centerInParent="true"
             android:layout_marginStart="10dp"
             android:layout_marginTop="10dp"
-
             android:layout_marginEnd="10dp"
             android:layout_marginBottom="10dp"
             android:text="@string/aim_step"
             android:textColor="@color/silver"
-            android:textSize="14sp" />
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/weekdays_tv"
@@ -78,7 +79,7 @@
             android:layout_centerInParent="true"
             android:layout_below="@id/totalMaxStep_tv"
             android:textColor="@color/silver"
-            android:textSize="13sp" />
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/month_and_day_tv"
@@ -87,7 +88,7 @@
             android:layout_centerInParent="true"
             android:layout_below="@id/weekdays_tv"
             android:textColor="@color/silver"
-            android:textSize="13sp" />
+            android:textSize="16sp" />
 
     </RelativeLayout>
     <RelativeLayout
@@ -113,21 +114,21 @@
             android:layout_centerInParent="true"
             android:layout_toStartOf="@id/dividerLine"
             android:layout_marginEnd="30dp"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textColor="@color/white"
             />
+
         <TextView
             android:id="@+id/distanceTitle_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
             android:layout_below="@id/distanceContent_tv"
-            android:layout_toStartOf="@id/dividerLine"
+            android:layout_centerInParent="true"
             android:layout_marginEnd="30dp"
+            android:layout_toStartOf="@id/dividerLine"
             android:text="@string/meter_tittle"
-            android:textSize="13sp"
             android:textColor="@color/silver"
-            />
+            android:textSize="18sp" />
         <TextView
             android:id="@+id/caloriesContent_tv"
             android:layout_width="wrap_content"
@@ -135,21 +136,21 @@
             android:layout_centerInParent="true"
             android:layout_toEndOf="@id/dividerLine"
             android:layout_marginStart="30dp"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textColor="@color/white"
             />
+
         <TextView
             android:id="@+id/caloriesTitle_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
             android:layout_below="@id/caloriesContent_tv"
-            android:layout_toEndOf="@id/dividerLine"
+            android:layout_centerInParent="true"
             android:layout_marginStart="30dp"
+            android:layout_toEndOf="@id/dividerLine"
             android:text="@string/calories_title"
-            android:textSize="13sp"
             android:textColor="@color/silver"
-            />
+            android:textSize="18sp" />
 
     </RelativeLayout>
     <RelativeLayout
@@ -176,6 +177,7 @@
         android:layout_height="0dp"
         android:layout_gravity="bottom"
         android:layout_weight="1"
+        app:itemIconSize="30dp"
         app:menu="@menu/bottom_navigation"
         android:background="@color/blue_gray"
         app:itemRippleColor="@color/yellow"

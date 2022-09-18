@@ -49,25 +49,26 @@
                 android:layout_weight="1"
                 android:visibility="visible"
                 >
+
                 <TextView
                     android:id="@+id/distance_content_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
-                    android:textAlignment="center"
                     android:text="@string/content"
+                    android:textAlignment="center"
                     android:textSize="20sp"
-                    android:textStyle="bold"
-                    />
+                    android:textStyle="bold" />
+
                 <TextView
                     android:id="@+id/distance_title_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_centerInParent="true"
-                    android:textAlignment="center"
+                    android:minHeight="48dp"
                     android:layout_below="@id/distance_content_tv"
+                    android:layout_centerInParent="true"
                     android:text="@string/title"
-                    />
+                    android:textAlignment="center" />
             </RelativeLayout>
             <RelativeLayout
                 android:layout_width="0dp"
@@ -75,20 +76,21 @@
                 android:layout_weight="1"
                 android:visibility="visible"
                 >
+
                 <TextView
                     android:id="@+id/calories_content_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
-                    android:textAlignment="center"
                     android:text="@string/content"
+                    android:textAlignment="center"
                     android:textSize="20sp"
-                    android:textStyle="bold"
-                    />
+                    android:textStyle="bold" />
                 <TextView
                     android:id="@+id/calories_title_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:minHeight="48dp"
                     android:layout_centerInParent="true"
                     android:textAlignment="center"
                     android:layout_below="@id/calories_content_tv"
@@ -101,20 +103,21 @@
                 android:layout_weight="1"
                 android:visibility="visible"
                 >
+
                 <TextView
                     android:id="@+id/duration_content_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
-                    android:textAlignment="center"
                     android:text="@string/content"
+                    android:textAlignment="center"
                     android:textSize="20sp"
-                    android:textStyle="bold"
-                    />
+                    android:textStyle="bold" />
                 <TextView
                     android:id="@+id/duration_title_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:minHeight="48dp"
                     android:layout_centerInParent="true"
                     android:textAlignment="center"
                     android:layout_below="@id/duration_content_tv"
@@ -133,7 +136,9 @@
                 android:id="@+id/stop_bt"
                 android:layout_width="160dp"
                 android:layout_height="match_parent"
+                android:minHeight="48dp"
                 android:text="@string/stop_button"
+                android:textSize="20sp"
                 style="@style/MaterialAlertDialog.Material3"
                 map:layout_constraintStart_toStartOf="parent"
                 android:textColor="@color/white"
@@ -145,8 +150,10 @@
                 android:id="@+id/pause_bt"
                 android:layout_width="160dp"
                 android:layout_height="match_parent"
+                android:minHeight="48dp"
                 map:layout_constraintEnd_toEndOf="parent"
                 android:text="@string/pause_button"
+                android:textSize="20sp"
                 style="@style/MaterialAlertDialog.Material3"
                 android:textColor="@color/white"
                 android:backgroundTint="@color/blue"
@@ -157,7 +164,9 @@
                 android:id="@+id/start_bt"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:minHeight="48dp"
                 android:text="@string/start_button"
+                android:textSize="25sp"
                 android:layout_marginRight="10dp"
                 android:layout_marginLeft="10dp"
                 style="@style/MaterialAlertDialog.Material3"
@@ -173,6 +182,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_gravity="bottom"
+        app:itemIconSize="30dp"
         app:menu="@menu/bottom_navigation"
         android:background="@color/blue_gray"
         app:itemRippleColor="@color/yellow"

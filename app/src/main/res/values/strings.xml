@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">Pedometer</string>
+    <string name="app_name">Step Counter</string>
     <!--    Count Step-->
-    <string name="count_step_activity_title">Count Step</string>
-    <string name="aim_step">AIM: 1000</string>
+    <string name="count_step_activity_title">Step Counter</string>
+    <string name="aim_step">AIM: %1$d</string>
     <string name="percent_aim">%1$d%%</string>
     <string name="month_and_day">%s %s</string>
     <string name="calories">%.3f</string>
@@ -11,7 +11,7 @@
     <string name="calories_title">CALORIES</string>
 
 
-    <!--    Gps Trainning-->
+    <!--    Gps Training-->
     <string name="title_activity_gps_map">GPS Training</string>
     <string name="map_id">5618cd7b01db1e2e</string>
     <string name="distance_title">KILOMETERS</string>

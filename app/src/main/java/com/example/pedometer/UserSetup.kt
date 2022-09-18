@@ -8,18 +8,15 @@ import android.widget.Toast
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.get
-import com.example.pedometer.database.DatabaseAPI
-import com.example.pedometer.database.db
+import com.example.pedometer.database.DatabasePreference
 import com.example.pedometer.databinding.AbsLayoutBinding
 import com.example.pedometer.databinding.ActivityUserSetupBinding
 import com.example.pedometer.model.countstep.Week
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.firebase.firestore.ktx.toObjects
 import java.util.*
 
 class UserSetup : AppCompatActivity() {
-    private var database : DatabaseAPI? = null
-    private var deviceId : String? = null
+    private var databasePreference : DatabasePreference? = null
     private var binding : ActivityUserSetupBinding? = null
     private var absBinding : AbsLayoutBinding? = null
 
@@ -28,6 +25,7 @@ class UserSetup : AppCompatActivity() {
     private var isRegister : Boolean = false
     private var myWeek : Week? = null
 
+    private var isInitAccount : Boolean? = null
     companion object{
         private const val TAG = "UserSetup"
     }
@@ -36,11 +34,11 @@ class UserSetup : AppCompatActivity() {
         binding = ActivityUserSetupBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
 
-
         //Setup Activity Custom action bar
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
 
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
+
         absBinding = AbsLayoutBinding.inflate(layoutInflater)
         supportActionBar!!.customView = absBinding!!.root
         absBinding!!.activityTitleTv.text =  baseContext.resources.getString(R.string.user_setup_activity_title)
@@ -52,9 +50,9 @@ class UserSetup : AppCompatActivity() {
         bottomNavigationHandle()
 
         //Setup database
-        database = DatabaseAPI(baseContext)
-        deviceId = database!!.deviceId
-        Log.v("User","Get key success: $deviceId")
+
+        databasePreference = DatabasePreference(baseContext)
+        Log.v(TAG,"Get key success: ${databasePreference!!.deviceId}")
 
         isRegister = intent.getBooleanExtra("isRegister",false)
 
@@ -65,6 +63,7 @@ class UserSetup : AppCompatActivity() {
         binding!!.goBt.setOnClickListener{
             if (!binding!!.totalMaxStepEv.text.isNullOrBlank() && !binding!!.totalCaloriesEv.text.isNullOrBlank()){
                 myWeek!!.stepPerDay = maxSteps!!.toInt()
+
                 val countStepIntent = Intent(this,CountStep::class.java)
                 countStepIntent.putExtra("myWeek",myWeek)
                 startActivity(countStepIntent)
@@ -92,46 +91,42 @@ class UserSetup : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        // Save day
+        // Save
+        myWeek!!.stepPerDay = maxSteps!!.toInt()
         saveData()
 
         Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
         myWeek!!.stepPerDay = maxSteps!!.toInt()
-
-        database!!.updateTargetStepToFireStore(maxSteps!!.toInt())
         Log.v(TAG, "Activity on pause, data updating!!!")
     }
     private fun isTargetFill(){
-        db.collection("Week").whereEqualTo("deviceId",deviceId)
-            .get().addOnSuccessListener {
-                if (it.documents.isEmpty()){
-                    Log.v("User","Init user data")
-                    database!!.initData(0)
-                    myWeek = Week(database!!.deviceId)
-                    bottomNavigationVisible(false)
-                }
-                else{
-                    Log.v("User","User data is exist")
-                    myWeek = it.toObjects<Week>()[0]
-                    if (myWeek!!.stepPerDay == 0){
-                        bottomNavigationVisible(false)
-                    }
-                    else {
-                        maxSteps = myWeek!!.stepPerDay!!.toFloat()
-                        calories = (maxSteps!!.toFloat() * FOOT_TO_CALORIE).toFloat()
-                        binding!!.totalCaloriesEv.setText(calories!!.toInt().toString())
-                        binding!!.totalMaxStepEv.setText(maxSteps!!.toInt().toString())
-                        bottomNavigationVisible(true)
-                    }
-                    if(isRegister) {
-                        val countStepIntent = Intent(this, CountStep::class.java)
-                        countStepIntent.putExtra("myWeek", myWeek)
-                        startActivity(countStepIntent)
-                    }
-                }
-                checkNewDay()
+        if (!loadWeekData()){
+            Log.v(TAG,"User data is init")
+            bottomNavigationVisible(false)
+            isInitAccount = true
+        }
+        else{
+            Log.v(TAG,"User data is exist")
+            if (myWeek!!.stepPerDay == 0){
+                bottomNavigationVisible(false)
             }
+            else {
+                maxSteps = myWeek!!.stepPerDay!!.toFloat()
+                calories = (maxSteps!!.toFloat() * FOOT_TO_CALORIE).toFloat()
+                binding!!.totalCaloriesEv.setText(calories!!.toInt().toString())
+                binding!!.totalMaxStepEv.setText(maxSteps!!.toInt().toString())
+                bottomNavigationVisible(true)
+            }
+            if(isRegister) {
+                val countStepIntent = Intent(this, CountStep::class.java)
+                countStepIntent.putExtra("myWeek", myWeek)
+                startActivity(countStepIntent)
+            }
+            isInitAccount = false
+        }
+        checkNewDay()
     }
+
     private fun bottomNavigationVisible(flag : Boolean){
         binding!!.bottomNavigation.menu[0].isVisible = flag
         binding!!.bottomNavigation.menu[1].isVisible = flag
@@ -156,28 +151,68 @@ class UserSetup : AppCompatActivity() {
             true
         }
     }
+    private fun loadWeekData() : Boolean {
+        val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
+
+        myWeek = databasePreference!!.initData(0)
+
+        val deviceId = sharedPreferences.getString("deviceId","")
+        if (deviceId == ""){
+            return false
+        }
+        myWeek!!.deviceId = deviceId
+        myWeek!!.stepPerDay = sharedPreferences.getInt("stepPerDay",0)
+        myWeek!!.mon = sharedPreferences.getInt("monStep",0)
+        myWeek!!.tue = sharedPreferences.getInt("tueStep",0)
+        myWeek!!.wed = sharedPreferences.getInt("wedStep",0)
+        myWeek!!.thu = sharedPreferences.getInt("thuStep",0)
+        myWeek!!.fri = sharedPreferences.getInt("friStep",0)
+        myWeek!!.sat = sharedPreferences.getInt("satStep",0)
+        myWeek!!.sun = sharedPreferences.getInt("sunStep",0)
+        return true
+    }
     private fun saveData() {
         val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
 
         val editor = sharedPreferences.edit()
         // Save day
-        val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
-        editor.putString("Today", today)
+        val today = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        editor.putInt("today", today)
         Log.v(TAG, "Today save is: $today")
+
+        Log.v(TAG,"Week save is : $myWeek")
+        editor.putString("deviceId", myWeek!!.deviceId)
+        editor.putInt("stepPerDay",myWeek!!.stepPerDay!!)
+        editor.putInt("monStep",myWeek!!.mon!!)
+        editor.putInt("tueStep",myWeek!!.tue!!)
+        editor.putInt("wedStep",myWeek!!.wed!!)
+        editor.putInt("thuStep",myWeek!!.thu!!)
+        editor.putInt("friStep",myWeek!!.fri!!)
+        editor.putInt("satStep",myWeek!!.sat!!)
+        editor.putInt("sunStep",myWeek!!.sun!!)
+
+        editor.apply()
+    }
+    private fun resetData() {
+        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
+
+        val editor = sharedPreferences.edit()
+        editor.putFloat("previousTotalSteps",0f)
         editor.apply()
 
     }
     private fun checkNewDay() {
         val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
-        val oldDay = sharedPreferences.getString("Today", "")
+        val oldDay = sharedPreferences.getInt("today",0)
         Log.v(TAG, "Old day: $oldDay")
-        val today = getWeekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
-        if (oldDay == today) {
+        val today = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        if (oldDay == today && !isInitAccount!!) {
             Log.v(TAG, "Still in today: $today")
         } else {
             // Reset data
             Log.v(TAG, "Change to new day is: $today")
-            myWeek = database!!.updateSpecifyDayOnWeek(myWeek!!,today!!,0)
+            resetData()
+            myWeek = databasePreference!!.updateSpecifyDay(myWeek!!, today,0)
         }
     }
 }
