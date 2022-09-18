@@ -20,6 +20,7 @@ How far can we go per day? Let me help you counting it ^^
 The third library and license i used to this app
 1) MPAndroid Chart
    https://github.com/PhilJay/MPAndroidChart
+   
    http://www.apache.org/licenses/LICENSE-2.0
 2) Circular Progress Bar
    https://github.com/lopspower/CircularProgressBar
