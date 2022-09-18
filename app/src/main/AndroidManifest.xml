@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.pedometer">
+    package="com.immortalweeds.pedometer">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -20,7 +20,7 @@
         android:theme="@style/Theme.Pedometer"
         tools:targetApi="31">
         <activity
-            android:name=".UserSetup"
+            android:name="com.immortalweeds.pedometer.UserSetup"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -36,10 +36,10 @@
             android:value="${MAPS_API_KEY}" />
 
         <activity
-            android:name=".GpsMap"
+            android:name="com.immortalweeds.pedometer.GpsMap"
             android:exported="false" />
         <activity
-            android:name=".CountStep"
+            android:name="com.immortalweeds.pedometer.CountStep"
             android:exported="true">
 
         </activity>
