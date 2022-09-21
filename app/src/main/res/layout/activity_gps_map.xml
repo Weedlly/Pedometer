@@ -24,25 +24,24 @@
         map:cameraTilt="30"
         tools:ignore="FragmentTagUsage">
     </fragment>
-    <LinearLayout
+    <GridLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="4"
-        android:weightSum="2"
+        android:rowCount="2"
         android:orientation="vertical"
         android:padding="15dp"
-        >
+        android:columnCount="1">
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_weight="1"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:weightSum="3"
             android:baselineAligned="false"
             android:background="@color/white"
             android:padding="5dp"
             tools:context=".GpsMap"
-            tools:ignore="NestedWeights">
+            >
             <RelativeLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -127,16 +126,17 @@
         </LinearLayout>
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_weight="1"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:padding="5dp"
+            android:layout_gravity="center"
             android:background="@color/blue_white"
             >
             <Button
                 android:id="@+id/stop_bt"
                 android:layout_width="160dp"
                 android:layout_height="match_parent"
-                android:minHeight="48dp"
+                android:minHeight="60dp"
+                android:minWidth="200dp"
                 android:text="@string/stop_button"
                 android:textSize="20sp"
                 style="@style/MaterialAlertDialog.Material3"
@@ -150,7 +150,8 @@
                 android:id="@+id/pause_bt"
                 android:layout_width="160dp"
                 android:layout_height="match_parent"
-                android:minHeight="48dp"
+                android:minHeight="60dp"
+                android:minWidth="200dp"
                 map:layout_constraintEnd_toEndOf="parent"
                 android:text="@string/pause_button"
                 android:textSize="20sp"
@@ -164,7 +165,7 @@
                 android:id="@+id/start_bt"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:minHeight="48dp"
+                android:minHeight="80dp"
                 android:text="@string/start_button"
                 android:textSize="25sp"
                 android:layout_marginRight="10dp"
@@ -175,7 +176,7 @@
                 android:textStyle="bold"
                 />
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </LinearLayout>
+    </GridLayout>
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"

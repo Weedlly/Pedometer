@@ -7,6 +7,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -37,6 +38,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
     //  Static data
     companion object {
+        private const val PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION = 2
         private const val TAG = "CountStep"
         private val X_TITLE: Array<String> =
             arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
@@ -49,6 +51,8 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
     private var binding: ActivityCountStepBinding? = null
     private var absBinding: AbsLayoutBinding? = null
+
+    private var activityRecognitionGranted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -169,30 +173,50 @@ class CountStep : AppCompatActivity(), SensorEventListener {
             FOOT_TO_CALORIE * totalStep
         )
     }
+
+
     private fun activityRecognitionPermission(){
-        var acceptCode  = 1
         if (ContextCompat.checkSelfPermission(this,android.Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED){
-            ActivityCompat.requestPermissions(this,
-                arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION),
-                acceptCode)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ActivityCompat.requestPermissions(this,
+                    arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION),
+                    PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION)
+            }
         }
-//        initData(0f)
-        Toast.makeText(this, "Don't accept!!! : $acceptCode" , Toast.LENGTH_SHORT).show()
+    }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        activityRecognitionGranted = false
+        when(requestCode){
+            PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                activityRecognitionGranted = true
+            }
+            else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
     }
     override fun onResume() {
         super.onResume()
         Toast.makeText(this, "Resume!!!", Toast.LENGTH_SHORT).show()
         running = true
-//        activityRecognitionPermission()
+        activityRecognitionPermission()
 
-        val stepSensor: Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
-        if (stepSensor == null) {
-            Toast.makeText(this, "No sensor detected on this device", Toast.LENGTH_SHORT).show()
-        } else {
-            sensorManager?.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_FASTEST)
-            Log.v(TAG, "Start")
+        if (activityRecognitionGranted) {
+            val stepSensor: Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+            if (stepSensor == null) {
+                Toast.makeText(this, "No sensor detected on this device", Toast.LENGTH_SHORT).show()
+            } else {
+                sensorManager?.registerListener(
+                    this,
+                    stepSensor,
+                    SensorManager.SENSOR_DELAY_FASTEST
+                )
+                Log.v(TAG, "Start")
+            }
         }
-
     }
 
     override fun onPause() {

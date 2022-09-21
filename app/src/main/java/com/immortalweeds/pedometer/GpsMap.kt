@@ -10,6 +10,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -64,6 +65,7 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
     private var locationPermissionGranted = false
+    private var activityRecognitionGranted = false
 
     // The geographical location where the device is currently located. That is, the last-known
     // location retrieved by the Fused Location Provider.
@@ -211,6 +213,7 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
         this.mGoogleMap = googleMap
         // Prompt the user for permission.
         getLocationPermission()
+        activityRecognitionPermission()
 
         // Turn on the My Location layer and the related control on the map.
         updateLocationUI()
@@ -539,6 +542,7 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
         grantResults: IntArray
     ) {
         locationPermissionGranted = false
+        activityRecognitionGranted = false
         when(requestCode){
             PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION -> {
                 // If request is cancelled, the result arrays are empty.
@@ -546,9 +550,25 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
                     locationPermissionGranted = true
                 }
             }
+            PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    activityRecognitionGranted = true
+            }
             else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
         updateLocationUI()
+    }
+    private fun activityRecognitionPermission(){
+        if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ActivityCompat.requestPermissions(this,
+                    arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
+                    PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION
+                )
+            }
+        }else{
+            activityRecognitionGranted = true
+        }
     }
 
     // Set up title for some showing information
@@ -636,6 +656,7 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
     companion object {
         private val TAG = GpsMap::class.java.simpleName
         private const val DEFAULT_ZOOM = 15
+        private const val PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION = 2
         private const val PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1
 
         // Keys for storing activity state.
