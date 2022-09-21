@@ -33,6 +33,6 @@ The third library and license I used to this app
 
 3) Smart Location
 
-   shttps://github.com/mrmans0n/smart-location-lib
+   https://github.com/mrmans0n/smart-location-lib
 
    The MIT License (MIT)
