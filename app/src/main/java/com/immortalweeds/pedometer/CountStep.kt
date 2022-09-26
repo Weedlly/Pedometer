@@ -47,16 +47,16 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     private var barChart: BarChart? = null
     private var databasePreference: DatabasePreference? = null
 
-    private var myWeek: Week? = null
+    private var myWeek: Week? = Week()
 
     private var binding: ActivityCountStepBinding? = null
     private var absBinding: AbsLayoutBinding? = null
 
     private var activityRecognitionGranted = false
 
+    @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Toast.makeText(this, "Create!!!", Toast.LENGTH_SHORT).show()
         binding = ActivityCountStepBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
 
@@ -71,18 +71,17 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         //Bottom navigation
         bottomNavigationHandle()
 
-        // Take data week
-
-        myWeek = intent.getSerializableExtra("myWeek") as Week
-
-
         loadWeekData()
         maxStep = myWeek!!.stepPerDay!!.toFloat()
         binding!!.progressCircular.progressMax = maxStep!!
 
         // Init database
         databasePreference = DatabasePreference(baseContext)
+        myWeek = databasePreference!!.initData(0)
         todayNumber = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        loadWeekData()
+        maxStep = myWeek!!.stepPerDay!!.toFloat()
+        binding!!.progressCircular.progressMax = maxStep!!
 
         binding!!.totalMaxStepTv.text =baseContext.resources.getString(R.string.aim_step,maxStep!!.toInt())
         Log.v(TAG, "Max step : $maxStep")
@@ -135,9 +134,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         bottomNavigationView.setOnItemSelectedListener {
             when (it.itemId) {
                 R.id.gps_training -> {
-                    val gpsMapIntent = Intent(this, GpsMap::class.java)
-                    gpsMapIntent.putExtra("myWeek", myWeek)
-                    startActivity(gpsMapIntent)
+                    startActivity(Intent(this, GpsMap::class.java))
                 }
                 R.id.target -> {
                     val intentUserSetup = Intent(this, UserSetup::class.java)
@@ -182,6 +179,13 @@ class CountStep : AppCompatActivity(), SensorEventListener {
                     arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION),
                     PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION)
             }
+            else{
+                activityRecognitionGranted = false
+                Toast.makeText(baseContext,"Your device don't have step counter monitor",Toast.LENGTH_SHORT).show()
+                val intentUserSetup = Intent(this, UserSetup::class.java)
+                intentUserSetup.putExtra("isRegister", false)
+                startActivity(intentUserSetup)
+            }
         }
     }
     override fun onRequestPermissionsResult(
@@ -192,18 +196,28 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         activityRecognitionGranted = false
         when(requestCode){
             PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-                activityRecognitionGranted = true
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    activityRecognitionGranted = true
+                    startSensor()
+                }
+                else{
+                    Toast.makeText(this,"This activity need permission to use",Toast.LENGTH_SHORT).show()
+                    val intentUserSetup = Intent(this, UserSetup::class.java)
+                    intentUserSetup.putExtra("isRegister", false)
+                    startActivity(intentUserSetup)
+                }
             }
             else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
     }
     override fun onResume() {
         super.onResume()
-        Toast.makeText(this, "Resume!!!", Toast.LENGTH_SHORT).show()
         running = true
         activityRecognitionPermission()
 
+        startSensor()
+    }
+    private fun startSensor(){
         if (activityRecognitionGranted) {
             val stepSensor: Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
             if (stepSensor == null) {
@@ -222,8 +236,6 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     override fun onPause() {
         super.onPause()
         running = false
-        Toast.makeText(this, "Pause!!! $totalStep", Toast.LENGTH_SHORT).show()
-
         myWeek = databasePreference!!.updateSpecifyDay(
             myWeek!!,
             todayNumber!!,
@@ -235,7 +247,6 @@ class CountStep : AppCompatActivity(), SensorEventListener {
     }
 
     override fun onSensorChanged(p0: SensorEvent?) {
-        Toast.makeText(this, "Sensor running!!!", Toast.LENGTH_SHORT).show()
         if (p0!!.sensor.type == Sensor.TYPE_STEP_DETECTOR) {
             if (running) {
                 totalStep += p0.values[0]
@@ -252,7 +263,6 @@ class CountStep : AppCompatActivity(), SensorEventListener {
                     setProgressWithAnimation(totalStep)
                 }
                 Toast.makeText(this, "Counting!!!", Toast.LENGTH_SHORT).show()
-                Log.v(TAG, "Counting!!!")
                 binding!!.distanceContentTv.text = baseContext.resources.getString(
                     R.string.distances,
                     FOOT_TO_METER * totalStep

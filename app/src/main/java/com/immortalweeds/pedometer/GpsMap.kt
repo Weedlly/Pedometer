@@ -1,3 +1,5 @@
+
+
 package com.immortalweeds.pedometer
 
 import android.Manifest
@@ -20,15 +22,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import androidx.core.view.isVisible
-import com.immortalweeds.pedometer.BuildConfig.MAPS_API_KEY
-import com.immortalweeds.pedometer.database.DatabasePreference
-import com.immortalweeds.pedometer.databinding.AbsLayoutBinding
-import com.immortalweeds.pedometer.databinding.ActivityGpsMapBinding
-import com.immortalweeds.pedometer.model.countstep.Week
-import com.immortalweeds.pedometer.model.gps.Route
-import com.immortalweeds.pedometer.network.ApiInterface
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -37,6 +30,13 @@ import com.google.android.gms.maps.model.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.immortalweeds.pedometer.BuildConfig.MAPS_API_KEY
+import com.immortalweeds.pedometer.database.DatabasePreference
+import com.immortalweeds.pedometer.databinding.AbsLayoutBinding
+import com.immortalweeds.pedometer.databinding.ActivityGpsMapBinding
+import com.immortalweeds.pedometer.model.countstep.Week
+import com.immortalweeds.pedometer.model.gps.Route
+import com.immortalweeds.pedometer.network.ApiInterface
 import io.nlopez.smartlocation.SmartLocation
 import kotlinx.coroutines.*
 import retrofit2.Retrofit
@@ -61,11 +61,8 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
     // The entry point to the Places API.
     private lateinit var placesClient: PlacesClient
 
-    // The entry point to the Fused Location Provider.
-    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
-
+    //Permission
     private var locationPermissionGranted = false
-    private var activityRecognitionGranted = false
 
     // The geographical location where the device is currently located. That is, the last-known
     // location retrieved by the Fused Location Provider.
@@ -82,12 +79,12 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
 
     // Data
     private var databasePreference : DatabasePreference? = null
-    private var myWeek : Week? = null
+    private var myWeek : Week? = Week()
     private var today : Int? = null
 
+    @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityGpsMapBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -97,79 +94,77 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
         supportActionBar!!.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
         absBinding = AbsLayoutBinding.inflate(layoutInflater)
         supportActionBar!!.customView = absBinding!!.root
-        absBinding!!.activityTitleTv.text = baseContext.resources.getString(R.string.title_activity_gps_map)
-
-        //Set up title and init value
-        setupTitle()
-        updateJourneyInformation(0.0,0.0)
-
-        // Take data week
-
-        today = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
-        myWeek = intent.getSerializableExtra("myWeek") as Week
-        loadWeekData()
-        Log.v(TAG,"GPS take week : $myWeek")
-        databasePreference = DatabasePreference(baseContext)
-
-        // Start continuous location
-        SmartLocation.with(baseContext).location().start{
-            lastKnownLocation = it
-            if (locationPermissionGranted && isUpdateLocation) {
-                updateTrainingRoute(LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude))
-                Log.v(TAG, "Update location: $lastKnownLocation")
-            }
-        }
-        // Update continuous location
-        CoroutineScope(Dispatchers.IO).launch{
-            while (true) {
-                // Get current location each 5 second
-                delay(5000)
-                Log.v(TAG, "isUpdateLocation $isUpdateLocation")
-//                if (isUpdateLocation) {
-//                    lastKnownLocation = SmartLocation.with(baseContext).location().get().lastLocation
-////                    lastKnownLocation!!.latitude = desti!!.latitude
-////                    lastKnownLocation!!.longitude = desti!!.longitude
-//                    Log.v(TAG, "Update location: $lastKnownLocation")
-//                }
-
-                if (locationPermissionGranted && isUpdateLocation) {
-                    CoroutineScope(Dispatchers.Main).launch {
-                        lastKnownLocation = SmartLocation.with(baseContext).location().get().lastLocation
-                        updateTrainingRoute(
-                            LatLng(
-                                lastKnownLocation!!.latitude,
-                                lastKnownLocation!!.longitude
-                            )
-                        )
-                        Log.v(TAG, "Update location: $lastKnownLocation")
-                    }
-                }
-            }
-        }
-
-        // button Start, Stop, Pause
-        buttonControlListener()
+        absBinding!!.activityTitleTv.text =
+            baseContext.resources.getString(R.string.title_activity_gps_map)
 
         //Bottom navigation
         bottomNavigationHandle()
 
+        //Set up title and init value
+        setupTitle()
+        updateJourneyInformation(0.0, 0.0)
+
+        // Init database
+        today = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        databasePreference = DatabasePreference(baseContext)
+        myWeek = databasePreference!!.initData(0)
+        loadWeekData()
+        Log.v(TAG, "GPS take week : $myWeek")
+
+        // button Start, Stop, Pause
+        buttonControlListener()
+
+        // savedInstanceState
         if (savedInstanceState != null) {
-            lastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION)
-            cameraPosition = savedInstanceState.getParcelable(KEY_CAMERA_POSITION)
+            Log.v(TAG,"saveInstance :$savedInstanceState")
+            lastKnownLocation = if (Build.VERSION.SDK_INT >= 33)
+                savedInstanceState.getParcelable(KEY_LOCATION, Location::class.java)
+            else
+                savedInstanceState.getParcelable(KEY_LOCATION)
+
+            cameraPosition = if (Build.VERSION.SDK_INT >= 33)
+                savedInstanceState.getParcelable(
+                    KEY_CAMERA_POSITION,
+                    CameraPosition::class.java
+                )
+            else
+                savedInstanceState.getParcelable(KEY_CAMERA_POSITION)
         }
 
+        // Setup map
         val mapFragment = supportFragmentManager
-                .findFragmentById(R.id.map) as? SupportMapFragment
-        mapFragment?.getMapAsync (this)
+            .findFragmentById(R.id.map) as? SupportMapFragment
+        mapFragment?.getMapAsync(this)
         // Construct a PlacesClient
-        Places.initialize(applicationContext,MAPS_API_KEY)
+        Places.initialize(applicationContext, MAPS_API_KEY)
         placesClient = Places.createClient(this)
-
-        // Construct a FusedLocationProviderClient.
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Set up sensor manager
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+
+    }
+
+    override fun onMapReady(googleMap: GoogleMap) {
+        this.mGoogleMap = googleMap
+        // Prompt the user for permission.
+        getLocationPermission()
+
+        Log.v(TAG,"don't waiting")
+        locationPermissionAccepted()
+    }
+    private fun locationPermissionAccepted(){
+        if (locationPermissionGranted) {
+
+            updateCurrentLocation()
+
+            mGoogleMap?.setOnMyLocationButtonClickListener {
+                handleMyLocation()
+            }
+
+            mGoogleMap!!.setOnMapClickListener {
+                setupTrainingRoute(it)
+            }
+        }
     }
 
     override fun onSensorChanged(p0: SensorEvent?) {
@@ -186,6 +181,7 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
 
     override fun onResume() {
         super.onResume()
+
         val stepSensor : Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
         if (stepSensor == null) {
             Toast.makeText(this, "No sensor detected on this device", Toast.LENGTH_SHORT).show()
@@ -195,107 +191,87 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
         }
     }
 
-        private fun loadWeekData() : Boolean {
-        val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
+    private fun getLocationPermission(){
 
-        myWeek!!.deviceId = sharedPreferences.getString("deviceId","")
-        myWeek!!.stepPerDay = sharedPreferences.getInt("stepPerDay",0)
-        myWeek!!.mon = sharedPreferences.getInt("monStep",0)
-        myWeek!!.tue = sharedPreferences.getInt("tueStep",0)
-        myWeek!!.wed = sharedPreferences.getInt("wedStep",0)
-        myWeek!!.thu = sharedPreferences.getInt("thuStep",0)
-        myWeek!!.fri = sharedPreferences.getInt("friStep",0)
-        myWeek!!.sat = sharedPreferences.getInt("satStep",0)
-        myWeek!!.sun = sharedPreferences.getInt("sunStep",0)
-        return true
-    }
-    override fun onMapReady(googleMap: GoogleMap) {
-        this.mGoogleMap = googleMap
-        // Prompt the user for permission.
-        getLocationPermission()
-        activityRecognitionPermission()
-
-        // Turn on the My Location layer and the related control on the map.
-        updateLocationUI()
-
-        // Get the current location of the device and set the position of the map.
-        getDeviceLocation()
-        mGoogleMap?.setOnMyLocationButtonClickListener {
-            handleMyLocation()
-        }
-
-        mGoogleMap!!.setOnMapClickListener {
-            setupTrainingRoute(it)
-        }
-    }
-    private fun saveData() {
-        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
-        // Save step
-        val editor = sharedPreferences.edit()
-        editor.putFloat("previousTotalSteps", totalStep)
-        editor.apply()
-    }
-    private fun buttonControlListener(){
-        // Press Start Button to show Stop and Pause Button, also active GPS Training
-        binding.startBt.setOnClickListener {
-
-            if (isEnoughTwoPoint) {
-                isUpdateLocation = true
-                binding.startBt.isVisible = false
-                binding.stopBt.isVisible = true
-                binding.pauseBt.isVisible = true
-            }
-            else {
-                // Requiring choose destination point to start
-                Toast.makeText(this, "Choosing location you want to moving ", Toast.LENGTH_SHORT)
-                    .show()
-                // Focus my location
-                handleMyLocation()
-            }
-        }
-
-        // Stopping Gps training then show Start button
-        binding.stopBt.setOnClickListener {
-            handleMyLocation()
-            isUpdateLocation = false
-            binding.stopBt.isVisible = false
-            binding.pauseBt.isVisible = false
-            binding.startBt.isVisible = true
-            setupTitle()
-        }
-
-        binding.pauseBt.setOnClickListener {
-            if (binding.pauseBt.text == "PAUSE") {
-                isUpdateLocation = false
-                binding.pauseBt.text = getString(R.string.continue_button)
-            }
-            // binding.pauseBt.text = CONTINUE
-            else{
-                isUpdateLocation = true
-                updateTrainingRoute(LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude))
-                binding.pauseBt.text = getString(R.string.pause_button)
-            }
+        if (ContextCompat.checkSelfPermission(this.applicationContext
+                ,Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED){
+            locationPermissionGranted = true
+        }else{
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION)
         }
     }
 
-    private fun bottomNavigationHandle(){
-        val bottomNavigationView : BottomNavigationView = binding.bottomNavigation
-
-        binding.bottomNavigation.menu[0].isChecked = true
-        bottomNavigationView.setOnItemSelectedListener {
-            when(it.itemId){
-                R.id.home-> {
-                    val countStepIntent = Intent(this, CountStep::class.java)
-                    countStepIntent.putExtra("myWeek", myWeek)
-                    startActivity(countStepIntent)
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        locationPermissionGranted = false
+        when(requestCode){
+            PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION -> {
+                // If request is cancelled, the result arrays are empty.
+                if(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                    locationPermissionGranted = true
+                    locationPermissionAccepted()
                 }
-                R.id.target-> {
+                else{
+                    Toast.makeText(this,"This activity need GPS permission to use",Toast.LENGTH_SHORT).show()
                     val intentUserSetup = Intent(this,UserSetup::class.java)
                     intentUserSetup.putExtra("isRegister",false)
                     startActivity(intentUserSetup)
                 }
             }
-            true
+            else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+    }
+
+
+    @SuppressLint("MissingPermission")
+    private fun updateCurrentLocation(){
+        // Start continuous location
+        mGoogleMap!!.isMyLocationEnabled = true
+        SmartLocation.with(baseContext).location().start{
+            lastKnownLocation = it
+            Log.v(TAG, "lastKnownLocation: $lastKnownLocation")
+            focusCurrentLocation()
+        }
+        // Update continuous location
+        CoroutineScope(Dispatchers.IO).launch{
+            while (true) {
+                // Get current location each 5 second
+                delay(3000)
+                Log.v(TAG, "isUpdateLocation $isUpdateLocation")
+//                if (isUpdateLocation) {
+//                    CoroutineScope(Dispatchers.Main).launch {
+//                        lastKnownLocation = SmartLocation.with(baseContext).location().get().lastLocation
+//                        lastKnownLocation!!.latitude = desti!!.latitude
+//                        lastKnownLocation!!.longitude = desti!!.longitude
+//                        updateTrainingRoute(
+//                            LatLng(
+//                                lastKnownLocation!!.latitude,
+//                                lastKnownLocation!!.longitude
+//                            )
+//                        )
+//                        Log.v(TAG, "Update location: $lastKnownLocation")
+//                    }
+//                }
+
+                if ( isUpdateLocation) {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        //get new current location
+                        lastKnownLocation = SmartLocation.with(baseContext).location().get().lastLocation
+                        updateTrainingRoute(
+                            LatLng(
+                                lastKnownLocation!!.latitude,
+                                lastKnownLocation!!.longitude
+                            )
+                        )
+                        Log.v(TAG, "Update location: $lastKnownLocation")
+                    }
+                }
+            }
         }
     }
 
@@ -442,40 +418,7 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
             updateData()
         }
     }
-    private fun updateData(){
-        myWeek = databasePreference!!.plusStepSpecificDay(
-            myWeek!!,
-            today!!,
-            totalStep.toInt())
-        totalStep = databasePreference!!.getStepSpecifyDay(myWeek!!, today!!).toFloat()
 
-        saveData()
-        saveWeekData()
-        totalStep = 0f
-    }
-    override fun onPause() {
-        Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
-        updateData()
-        Log.v(TAG, "Activity on pause, data updating!!!")
-        super.onPause()
-    }
-    private fun saveWeekData() {
-        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
-        // Save step
-        val editor = sharedPreferences.edit()
-        Log.v(TAG,"Week save is : $myWeek")
-        editor.putString("deviceId", myWeek!!.deviceId)
-        editor.putInt("stepPerDay",myWeek!!.stepPerDay!!)
-        editor.putInt("monStep",myWeek!!.mon!!)
-        editor.putInt("tueStep",myWeek!!.tue!!)
-        editor.putInt("wedStep",myWeek!!.wed!!)
-        editor.putInt("thuStep",myWeek!!.thu!!)
-        editor.putInt("friStep",myWeek!!.fri!!)
-        editor.putInt("satStep",myWeek!!.sat!!)
-        editor.putInt("sunStep",myWeek!!.sun!!)
-
-        editor.apply()
-    }
     private fun getDirection(origin: LatLng ,dest: LatLng) : Route {
         val retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create()).build()
         val service: ApiInterface by lazy { retrofit.create(ApiInterface::class.java)}
@@ -496,79 +439,127 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
         return route!!
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        mGoogleMap?.let { map ->
-            outState.putParcelable(KEY_CAMERA_POSITION, map.cameraPosition)
-            outState.putParcelable(KEY_LOCATION, lastKnownLocation)
-        }
-        super.onSaveInstanceState(outState)
-    }
-    private fun getLocationPermission(){
-        if (ContextCompat.checkSelfPermission(this.applicationContext
-                ,Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED){
-            locationPermissionGranted = true
-        }else{
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION)
-        }
-    }
-
     // Handle my location action
     private fun handleMyLocation() : Boolean{
-            val latLng = LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude)
-            Log.v(TAG,"Current location: $lastKnownLocation")
-            mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng,15f))
-            val markerOptions = MarkerOptions()
-            if (markerPoints.isEmpty()) {
-                markerPoints.add(latLng)
-            }
-            else {
-                markerPoints.clear()
-                mGoogleMap!!.clear()
-                markerPoints.add(latLng)
-            }
-            markerOptions.position(latLng)
-            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-            mGoogleMap!!.addMarker(markerOptions.title("You are here"))
+        Log.v(TAG,"Current location: $lastKnownLocation")
+        val latLng = LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude)
 
-            isEnoughTwoPoint = false
-            return true
+        mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng,15f))
+        val markerOptions = MarkerOptions()
+        if (markerPoints.isEmpty()) {
+            markerPoints.add(latLng)
+        }
+        else {
+            markerPoints.clear()
+            mGoogleMap!!.clear()
+            markerPoints.add(latLng)
+        }
+        markerOptions.position(latLng)
+        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+        mGoogleMap!!.addMarker(markerOptions.title("You are here"))
+
+        isEnoughTwoPoint = false
+        return true
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        locationPermissionGranted = false
-        activityRecognitionGranted = false
-        when(requestCode){
-            PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION -> {
-                // If request is cancelled, the result arrays are empty.
-                if(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                    locationPermissionGranted = true
+    private fun focusCurrentLocation(){
+        if (lastKnownLocation != null) {
+            Log.v(TAG,"lastKnownLocation :$lastKnownLocation")
+            mGoogleMap?.moveCamera(
+                (CameraUpdateFactory.newLatLngZoom(
+                    LatLng(
+                        lastKnownLocation!!.latitude,
+                        lastKnownLocation!!.longitude
+                    ), DEFAULT_ZOOM.toFloat()
+                ))
+            )
+        }
+    }
+
+    private fun bottomNavigationHandle(){
+        val bottomNavigationView : BottomNavigationView = binding.bottomNavigation
+
+        binding.bottomNavigation.menu[0].isChecked = true
+        bottomNavigationView.setOnItemSelectedListener {
+            when(it.itemId){
+                R.id.home-> {
+                    val countStepIntent = Intent(this, CountStep::class.java)
+                    countStepIntent.putExtra("myWeek", myWeek)
+                    startActivity(countStepIntent)
+                }
+                R.id.target-> {
+                    val intentUserSetup = Intent(this,UserSetup::class.java)
+                    intentUserSetup.putExtra("isRegister",false)
+                    startActivity(intentUserSetup)
                 }
             }
-            PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-                    activityRecognitionGranted = true
-            }
-            else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+            true
         }
-        updateLocationUI()
     }
-    private fun activityRecognitionPermission(){
-        if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED){
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ActivityCompat.requestPermissions(this,
-                    arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
-                    PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION
-                )
+
+    private fun buttonControlListener(){
+        // Press Start Button to show Stop and Pause Button, also active GPS Training
+        binding.startBt.setOnClickListener {
+
+            if (isEnoughTwoPoint) {
+                isUpdateLocation = true
+                binding.startBt.isVisible = false
+                binding.stopBt.isVisible = true
+                binding.pauseBt.isVisible = true
             }
-        }else{
-            activityRecognitionGranted = true
+            else {
+                // Requiring choose destination point to start
+                Toast.makeText(this, "Choosing location you want to moving ", Toast.LENGTH_SHORT)
+                    .show()
+                // Focus my location
+                handleMyLocation()
+            }
         }
+
+        // Stopping Gps training then show Start button
+        binding.stopBt.setOnClickListener {
+            handleMyLocation()
+            isUpdateLocation = false
+            binding.stopBt.isVisible = false
+            binding.pauseBt.isVisible = false
+            binding.startBt.isVisible = true
+            setupTitle()
+        }
+
+        binding.pauseBt.setOnClickListener {
+            if (binding.pauseBt.text == "PAUSE") {
+                isUpdateLocation = false
+                binding.pauseBt.text = getString(R.string.continue_button)
+            }
+            // binding.pauseBt.text = CONTINUE
+            else{
+                isUpdateLocation = true
+                updateTrainingRoute(LatLng(lastKnownLocation!!.latitude,lastKnownLocation!!.longitude))
+                binding.pauseBt.text = getString(R.string.pause_button)
+            }
+        }
+    }
+
+    private fun saveData() {
+        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
+        // Save step
+        val editor = sharedPreferences.edit()
+        editor.putFloat("previousTotalSteps", totalStep)
+        editor.apply()
+    }
+    private fun loadWeekData() : Boolean {
+        val sharedPreferences = getSharedPreferences("myPrefs",Context.MODE_PRIVATE)
+
+        myWeek!!.deviceId = sharedPreferences.getString("deviceId","")
+        myWeek!!.stepPerDay = sharedPreferences.getInt("stepPerDay",0)
+        myWeek!!.mon = sharedPreferences.getInt("monStep",0)
+        myWeek!!.tue = sharedPreferences.getInt("tueStep",0)
+        myWeek!!.wed = sharedPreferences.getInt("wedStep",0)
+        myWeek!!.thu = sharedPreferences.getInt("thuStep",0)
+        myWeek!!.fri = sharedPreferences.getInt("friStep",0)
+        myWeek!!.sat = sharedPreferences.getInt("satStep",0)
+        myWeek!!.sun = sharedPreferences.getInt("sunStep",0)
+        return true
     }
 
     // Set up title for some showing information
@@ -596,67 +587,56 @@ class GpsMap : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
             second)
     }
 
+    private fun updateData(){
+        myWeek = databasePreference!!.plusStepSpecificDay(
+            myWeek!!,
+            today!!,
+            totalStep.toInt())
 
-    @SuppressLint("MissingPermission")
-    private fun updateLocationUI(){
-        if (mGoogleMap == null){
-            return
-        }
-        try{
-            if (locationPermissionGranted){
-//                mGoogleMap?.isMyLocationEnabled = true
-                mGoogleMap?.uiSettings?.isMyLocationButtonEnabled = true
-            }else{
-//                mGoogleMap?.isMyLocationEnabled = false
-                mGoogleMap?.uiSettings?.isMyLocationButtonEnabled = false
-                lastKnownLocation = null
-                getLocationPermission()
-            }
-        }
-        catch (e :SecurityException){
-            Log.e("Exception: %s",e.message,e)
-        }
+        totalStep = databasePreference!!.getStepSpecifyDay(myWeek!!, today!!).toFloat()
+        saveData()
+        saveWeekData()
+        totalStep = 0f
+    }
+    override fun onPause() {
+        updateData()
+        Log.v(TAG, "Activity on pause, data updating!!!")
+        super.onPause()
+    }
+    private fun saveWeekData() {
+        val sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
+        // Save step
+        val editor = sharedPreferences.edit()
+        Log.v(TAG,"Week save is : $myWeek")
+        editor.putString("deviceId", myWeek!!.deviceId)
+        editor.putInt("stepPerDay",myWeek!!.stepPerDay!!)
+        editor.putInt("monStep",myWeek!!.mon!!)
+        editor.putInt("tueStep",myWeek!!.tue!!)
+        editor.putInt("wedStep",myWeek!!.wed!!)
+        editor.putInt("thuStep",myWeek!!.thu!!)
+        editor.putInt("friStep",myWeek!!.fri!!)
+        editor.putInt("satStep",myWeek!!.sat!!)
+        editor.putInt("sunStep",myWeek!!.sun!!)
+
+        editor.apply()
     }
 
-    @SuppressLint("MissingPermission")
-    private fun getDeviceLocation() {
-        try {
-            if(locationPermissionGranted){
-                Log.v(TAG,"Get current location")
-                val locationResult = fusedLocationProviderClient.lastLocation
-                locationResult.addOnCompleteListener(this){
-                    task ->
-                    if(task.isSuccessful) {
-                        // Set the map's camera position to the current location of the device.
-                        lastKnownLocation = task.result
-                        if (lastKnownLocation != null) {
-                            Log.v(TAG,"lastKnownLocation :$lastKnownLocation")
-                            mGoogleMap?.moveCamera(
-                                (CameraUpdateFactory.newLatLngZoom(
-                                    LatLng(
-                                        lastKnownLocation!!.latitude,
-                                        lastKnownLocation!!.longitude
-                                    ), DEFAULT_ZOOM.toFloat()
-                                ))
-                            )
-                        }
-                    }
-                }
-            }
+    override fun onSaveInstanceState(outState: Bundle) {
+        Log.v(TAG,"saveInstance :$outState")
+        mGoogleMap?.let { map ->
+            outState.putParcelable(KEY_CAMERA_POSITION, map.cameraPosition)
+            outState.putParcelable(KEY_LOCATION, lastKnownLocation)
         }
-        catch (e : SecurityException){
-            Log.e("Exception %e",e.message,e)
-        }
+        super.onSaveInstanceState(outState)
     }
 
     override fun onStop() {
         SmartLocation.with(baseContext).location().stop()
-    super.onStop()
+        super.onStop()
     }
     companion object {
         private val TAG = GpsMap::class.java.simpleName
         private const val DEFAULT_ZOOM = 15
-        private const val PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION = 2
         private const val PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1
 
         // Keys for storing activity state.

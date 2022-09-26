@@ -23,7 +23,7 @@ class UserSetup : AppCompatActivity() {
     private var maxSteps: Float? = 0f
     private var calories: Float? = 0f
     private var isRegister : Boolean = false
-    private var myWeek : Week? = null
+    private var myWeek : Week? = Week()
 
     private var isInitAccount : Boolean? = null
     companion object{
@@ -95,7 +95,8 @@ class UserSetup : AppCompatActivity() {
         myWeek!!.stepPerDay = maxSteps!!.toInt()
         saveData()
 
-        Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
+//        Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
+//
         myWeek!!.stepPerDay = maxSteps!!.toInt()
         Log.v(TAG, "Activity on pause, data updating!!!")
     }
@@ -138,14 +139,10 @@ class UserSetup : AppCompatActivity() {
         bottomNavigationView.setOnItemSelectedListener {
             when(it.itemId){
                 R.id.gps_training-> {
-                    val gpsMapIntent = Intent(this, GpsMap::class.java)
-                    gpsMapIntent.putExtra("myWeek", myWeek)
-                    startActivity(gpsMapIntent)
+                    startActivity(Intent(this, GpsMap::class.java))
                 }
                 R.id.home-> {
-                    val countStepIntent = Intent(this, CountStep::class.java)
-                    countStepIntent.putExtra("myWeek", myWeek)
-                    startActivity(countStepIntent)
+                    startActivity(Intent(this, CountStep::class.java))
                 }
             }
             true

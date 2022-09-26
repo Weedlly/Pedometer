@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.immortalweeds.pedometer">
+    package="com.immortalweeds.pedometer" >
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <application
         android:allowBackup="true"
@@ -18,9 +18,10 @@
         android:roundIcon="@mipmap/logo_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Pedometer"
-        tools:targetApi="31">
+        tools:targetApi="31" >
+
         <activity
-            android:name="com.immortalweeds.pedometer.UserSetup"
+            android:name=".UserSetup"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -36,13 +37,14 @@
             android:value="${MAPS_API_KEY}" />
 
         <activity
-            android:name="com.immortalweeds.pedometer.GpsMap"
+            android:name="com.immortalweeds.pedometer.GpsMapTest"
             android:exported="false" />
         <activity
             android:name="com.immortalweeds.pedometer.CountStep"
-            android:exported="true">
-
-        </activity>
+            android:exported="true"/>
+        <activity
+            android:name=".GpsMap"
+            android:exported="true" />
     </application>
 
 </manifest>
