@@ -16,13 +16,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.get
+import com.github.mikephil.charting.charts.BarChart
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.immortalweeds.pedometer.builders.WeekChart
 import com.immortalweeds.pedometer.database.DatabasePreference
 import com.immortalweeds.pedometer.databinding.AbsLayoutBinding
 import com.immortalweeds.pedometer.databinding.ActivityCountStepBinding
 import com.immortalweeds.pedometer.model.countstep.Week
-import com.github.mikephil.charting.charts.BarChart
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import java.text.DateFormatSymbols
 import java.util.*
 import kotlin.math.roundToInt
@@ -173,18 +173,33 @@ class CountStep : AppCompatActivity(), SensorEventListener {
 
 
     private fun activityRecognitionPermission(){
-        if (ContextCompat.checkSelfPermission(this,android.Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED){
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        Log.v(TAG, "version sdk : ${Build.VERSION.SDK_INT} and version code : ${Build.VERSION_CODES.Q}")
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this,
+                    android.Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED) {
+
                 ActivityCompat.requestPermissions(this,
                     arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION),
+                    PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION
+                )
+            }
+            else{
+                activityRecognitionGranted = true
+            }
+        }
+        else{
+            Log.v(TAG,"seftpermis ${ContextCompat.checkSelfPermission(this,
+                "com.google.android.gms.permission.ACTIVITY_RECOGNITION")}")
+            if (ContextCompat.checkSelfPermission(this,
+                    "com.google.android.gms.permission.ACTIVITY_RECOGNITION") == PackageManager.PERMISSION_DENIED){
+
+                ActivityCompat.requestPermissions(this,
+                    arrayOf("com.google.android.gms.permission.ACTIVITY_RECOGNITION"),
                     PERMISSIONS_REQUEST_ACCESS_ACTIVITY_RECOGNITION)
             }
             else{
-                activityRecognitionGranted = false
-                Toast.makeText(baseContext,"Your device don't have step counter monitor",Toast.LENGTH_SHORT).show()
-                val intentUserSetup = Intent(this, UserSetup::class.java)
-                intentUserSetup.putExtra("isRegister", false)
-                startActivity(intentUserSetup)
+                activityRecognitionGranted = true
             }
         }
     }
@@ -214,6 +229,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         super.onResume()
         running = true
         activityRecognitionPermission()
+        Log.v(TAG,"permission : $activityRecognitionGranted")
 
         startSensor()
     }
@@ -228,7 +244,7 @@ class CountStep : AppCompatActivity(), SensorEventListener {
                     stepSensor,
                     SensorManager.SENSOR_DELAY_FASTEST
                 )
-                Log.v(TAG, "Start")
+                Toast.makeText(this, "Set up monitor!!!", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -243,10 +259,12 @@ class CountStep : AppCompatActivity(), SensorEventListener {
         )
         saveData()
         saveWeekData()
+        Toast.makeText(this, "Pause!!!", Toast.LENGTH_SHORT).show()
         Log.v(TAG, "Activity on pause, data updating!!!")
     }
 
     override fun onSensorChanged(p0: SensorEvent?) {
+        Toast.makeText(this, "Counting!!!", Toast.LENGTH_SHORT).show()
         if (p0!!.sensor.type == Sensor.TYPE_STEP_DETECTOR) {
             if (running) {
                 totalStep += p0.values[0]
